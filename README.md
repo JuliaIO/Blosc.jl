@@ -16,7 +16,7 @@ The basic functions provided are:
 
 * `decompress!(dest::Vector{T}, src::Vector{Uint8})`: like `decompress`, but uses a pre-allocated destination buffer, which is resized as needed to store the decompressed data.
 
-* `Blosc.set_num_threads(n)`: tells Blosc to use `n` threads (default is `1`).
+* `Blosc.set_num_threads(n=CPU_CORES)`: tells Blosc to use `n` threads (initially `1`).
 
 * `Blosc.compressors()`: returns an array of strings for the available compression algorithms.
 

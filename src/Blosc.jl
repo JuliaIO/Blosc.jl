@@ -7,11 +7,14 @@ __init__() = ccall((:blosc_init,libblosc), Void, ())
 
 # the following constants should match those in blosc.h
 const MAX_OVERHEAD = 16
+const MAX_THREADS = 256
 
 # returns size of compressed data inside dest
 function compress!{T}(dest::Vector{Uint8}, src::Array{T};
 	              level::Integer=6, shuffle::Bool=true,
                       typesize::Integer=sizeof(T))	
+    0 ≤ level ≤ 9 || throw(ArgumentError("invalid compression level $level not in [0,9]"))
+    typesize > 0 || throw(ArgumentError("typesize must be positive"))
     # See Blosc/c-blosc#67 -- they use an int for the compressed size
     sz = ccall((:blosc_compress,libblosc), Cint,
                (Cint,Cint,Csize_t, Csize_t, Ptr{T}, Ptr{Uint8}, Csize_t),
@@ -23,16 +26,10 @@ end
 function compress{T}(src::Array{T};
                      level::Integer=6, shuffle::Bool=true,
                      typesize::Integer=sizeof(T))
-    dest = Array(Uint8, div(sizeof(src), 4) + MAX_OVERHEAD)
-    while true
-        sz = compress!(dest,src; level=level,shuffle=shuffle,typesize=typesize)
-        if sz > 0
-            return resize!(dest, sz)
-        else
-            resize!(dest, max(sizeof(src) + MAX_OVERHEAD,
-                              div(sizeof(dest) * 3, 2)))
-        end
-    end
+    dest = Array(Uint8, sizeof(src) + MAX_OVERHEAD)
+    sz = compress!(dest,src; level=level,shuffle=shuffle,typesize=typesize)
+    assert(sz > 0 || isempty(src))
+    return resize!(dest, sz)
 end
 
 # given a compressed buffer, return the (uncompressed, compressed, block) size
@@ -63,8 +60,10 @@ end
 
 decompress{T}(::Type{T}, src::Vector{Uint8}) = decompress!(Array(T,0), src)
 
-set_num_threads(n::Integer) = ccall((:blosc_set_nthreads,libblosc),
-                                    Cint, (Cint,), n)
+function set_num_threads(n::Integer=CPU_CORES)
+    1 ≤ n ≤ MAX_THREADS || throw(ArgumentError("must have 1 ≤ nthreads ≤ $MAX_THREADS"))
+    return ccall((:blosc_set_nthreads,libblosc), Cint, (Cint,), n)
+end
 
 compressors() = split(bytestring(ccall((:blosc_list_compressors,libblosc),
                                        Ptr{Uint8}, ())),
