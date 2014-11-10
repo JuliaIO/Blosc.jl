@@ -46,6 +46,7 @@ end
 
 function decompress!{T}(dest::Vector{T}, src::Vector{Uint8})
     uncompressed, = sizes(src)
+    uncompressed == 0 && return resize!(dest, 0)
     sizeT = sizeof(T)
     len = div(uncompressed, sizeT)
     if len*sizeT != uncompressed
