@@ -7,7 +7,7 @@ Library](http://www.blosc.org/).
 ## Installation
 
 To install, simply run `Pkg.add("Blosc")` in Julia.  Precompiled
-binaries are provided for Mac and Windows system, while on other
+binaries are provided for Mac and Windows systems, while on other
 systems the Blosc library will be downloaded and compiled.
 
 ## Usage
