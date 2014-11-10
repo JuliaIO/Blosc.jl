@@ -4,6 +4,12 @@ This module provides fast lossless compression for the [Julia
 language](http://julialang.org/) by interfacing the [Blosc
 Library](http://www.blosc.org/).
 
+## Installation
+
+To install, simply run `Pkg.add("Blosc")` in Julia.  Precompiled
+binaries are provided for Mac and Windows system, while on other
+systems the Blosc library will be downloaded and compiled.
+
 ## Usage
 
 The basic functions provided are:
