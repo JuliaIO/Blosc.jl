@@ -9,13 +9,17 @@ __init__() = ccall((:blosc_init,libblosc), Void, ())
 const MAX_OVERHEAD = 16
 const MAX_THREADS = 256
 
+# Blosc is currently limited to 32-bit buffer sizes (Blosc/c-blosc#67)
+const MAX_BUFFERSIZE = typemax(Cint) - MAX_OVERHEAD
+
 # returns size of compressed data inside dest
 function compress!{T}(dest::Vector{Uint8}, src::Array{T};
 	              level::Integer=6, shuffle::Bool=true,
                       typesize::Integer=sizeof(T))	
     0 ≤ level ≤ 9 || throw(ArgumentError("invalid compression level $level not in [0,9]"))
     typesize > 0 || throw(ArgumentError("typesize must be positive"))
-    # See Blosc/c-blosc#67 -- they use an int for the compressed size
+    src_size = sizeof(src)
+    src_size ≤ MAX_BUFFERSIZE || throw(ArgumentError("data > $MAX_BUFFERSIZE bytes is not supported by Blosc"))
     sz = ccall((:blosc_compress,libblosc), Cint,
                (Cint,Cint,Csize_t, Csize_t, Ptr{T}, Ptr{Uint8}, Csize_t),
                level, shuffle, typesize, sizeof(src), src, dest, sizeof(dest))
