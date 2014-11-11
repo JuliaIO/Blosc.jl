@@ -4,6 +4,8 @@ This module provides fast lossless compression for the [Julia
 language](http://julialang.org/) by interfacing the [Blosc
 Library](http://www.blosc.org/).
 
+Note that Blosc is currently [limited to 32-bit buffer sizes](https://github.com/Blosc/c-blosc/issues/67).
+
 ## Installation
 
 To install, simply run `Pkg.add("Blosc")` in Julia.  Precompiled
