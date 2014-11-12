@@ -15,23 +15,23 @@ const MAX_BUFFERSIZE = typemax(Cint) - MAX_OVERHEAD
 # returns size of compressed data inside dest
 function compress!{T}(dest::Vector{Uint8}, src::Array{T};
 	              level::Integer=6, shuffle::Bool=true,
-                      typesize::Integer=sizeof(T))	
+                      itemsize::Integer=sizeof(T))	
     0 ≤ level ≤ 9 || throw(ArgumentError("invalid compression level $level not in [0,9]"))
-    typesize > 0 || throw(ArgumentError("typesize must be positive"))
+    itemsize > 0 || throw(ArgumentError("itemsize must be positive"))
     src_size = sizeof(src)
     src_size ≤ MAX_BUFFERSIZE || throw(ArgumentError("data > $MAX_BUFFERSIZE bytes is not supported by Blosc"))
     sz = ccall((:blosc_compress,libblosc), Cint,
                (Cint,Cint,Csize_t, Csize_t, Ptr{T}, Ptr{Uint8}, Csize_t),
-               level, shuffle, typesize, sizeof(src), src, dest, sizeof(dest))
+               level, shuffle, itemsize, sizeof(src), src, dest, sizeof(dest))
     sz < 0 && error("Blosc error $sz")
     return convert(Int, sz)
 end
 
 function compress{T}(src::Array{T};
                      level::Integer=6, shuffle::Bool=true,
-                     typesize::Integer=sizeof(T))
+                     itemsize::Integer=sizeof(T))
     dest = Array(Uint8, sizeof(src) + MAX_OVERHEAD)
-    sz = compress!(dest,src; level=level,shuffle=shuffle,typesize=typesize)
+    sz = compress!(dest,src; level=level,shuffle=shuffle,itemsize=itemsize)
     assert(sz > 0 || isempty(src))
     return resize!(dest, sz)
 end
