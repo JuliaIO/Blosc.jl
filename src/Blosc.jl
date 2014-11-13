@@ -8,9 +8,20 @@ __init__() = ccall((:blosc_init,libblosc), Void, ())
 # the following constants should match those in blosc.h
 const MAX_OVERHEAD = 16
 const MAX_THREADS = 256
+const VERSION_FORMAT = 2
+const MAX_TYPESIZE = 255
 
 # Blosc is currently limited to 32-bit buffer sizes (Blosc/c-blosc#67)
 const MAX_BUFFERSIZE = typemax(Cint) - MAX_OVERHEAD
+
+# low-level functions:
+blosc_compress(level, shuffle, itemsize, srcsize, src, dest, destsize) =
+    ccall((:blosc_compress,libblosc), Cint,
+          (Cint,Cint,Csize_t, Csize_t, Ptr{Void}, Ptr{Void}, Csize_t),
+          level, shuffle, itemsize, srcsize, src, dest, destsize)
+blosc_decompress(src, dest, destsize) =
+    ccall((:blosc_decompress,libblosc), Cint, (Ptr{Void},Ptr{Void},Csize_t),
+          src, dest, destsize)
 
 # returns size of compressed data inside dest
 function compress!{T}(dest::Vector{Uint8}, src::Array{T};
@@ -20,9 +31,8 @@ function compress!{T}(dest::Vector{Uint8}, src::Array{T};
     itemsize > 0 || throw(ArgumentError("itemsize must be positive"))
     src_size = sizeof(src)
     src_size ≤ MAX_BUFFERSIZE || throw(ArgumentError("data > $MAX_BUFFERSIZE bytes is not supported by Blosc"))
-    sz = ccall((:blosc_compress,libblosc), Cint,
-               (Cint,Cint,Csize_t, Csize_t, Ptr{T}, Ptr{Uint8}, Csize_t),
-               level, shuffle, itemsize, sizeof(src), src, dest, sizeof(dest))
+    sz = blosc_compress(level, shuffle, itemsize,
+                        sizeof(src), src, dest, sizeof(dest))
     sz < 0 && error("Blosc error $sz")
     return convert(Int, sz)
 end
@@ -38,15 +48,16 @@ end
 
 # given a compressed buffer, return the (uncompressed, compressed, block) size
 const sizes_vals = Array(Csize_t, 3)
-function sizes(buf::Vector{Uint8})
+function cbuffer_sizes(buf::Ptr)
     ccall((:blosc_cbuffer_sizes,libblosc), Void,
-          (Ptr{Uint8}, Ptr{Csize_t}, Ptr{Csize_t}, Ptr{Csize_t}),
+          (Ptr{Void}, Ptr{Csize_t}, Ptr{Csize_t}, Ptr{Csize_t}),
           buf,
           pointer(sizes_vals, 1),
           pointer(sizes_vals, 2),
           pointer(sizes_vals, 3))
     return (sizes_vals[1], sizes_vals[2], sizes_vals[3])
 end
+sizes(buf::Vector{Uint8}) = cbuffer_sizes(pointer(buf))
 
 function decompress!{T}(dest::Vector{T}, src::Vector{Uint8})
     uncompressed, = sizes(src)
@@ -57,8 +68,7 @@ function decompress!{T}(dest::Vector{T}, src::Vector{Uint8})
         error("uncompressed data is not a multiple of sizeof($T)")
     end
     resize!(dest, len)
-    sz = ccall((:blosc_decompress,libblosc), Cint, (Ptr{Uint8},Ptr{T},Csize_t),
-               src, dest, sizeof(dest))
+    sz = blosc_decompress(src, dest, sizeof(dest))
     sz <= 0 && error("Blosc decompress error $sz")
     return dest
 end
