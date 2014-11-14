@@ -1,5 +1,5 @@
 module Blosc
-export compress, compress!, decompress, compress!
+export compress, compress!, decompress, decompress!
 
 const libblosc = Pkg.dir("Blosc", "deps", "libblosc")
 
@@ -24,27 +24,29 @@ blosc_decompress(src, dest, destsize) =
           src, dest, destsize)
 
 # returns size of compressed data inside dest
-function compress!{T}(dest::Vector{Uint8}, src::Array{T};
-	              level::Integer=6, shuffle::Bool=true,
+function compress!{T}(dest::Vector{Uint8}, src::Ptr{T}, src_size::Integer;
+	              level::Integer=5, shuffle::Bool=true,
                       itemsize::Integer=sizeof(T))	
     0 ≤ level ≤ 9 || throw(ArgumentError("invalid compression level $level not in [0,9]"))
     itemsize > 0 || throw(ArgumentError("itemsize must be positive"))
-    src_size = sizeof(src)
     src_size ≤ MAX_BUFFERSIZE || throw(ArgumentError("data > $MAX_BUFFERSIZE bytes is not supported by Blosc"))
     sz = blosc_compress(level, shuffle, itemsize,
-                        sizeof(src), src, dest, sizeof(dest))
+                        src_size, src, dest, sizeof(dest))
     sz < 0 && error("Blosc error $sz")
     return convert(Int, sz)
 end
 
-function compress{T}(src::Array{T};
-                     level::Integer=6, shuffle::Bool=true,
-                     itemsize::Integer=sizeof(T))
-    dest = Array(Uint8, sizeof(src) + MAX_OVERHEAD)
-    sz = compress!(dest,src; level=level,shuffle=shuffle,itemsize=itemsize)
-    assert(sz > 0 || isempty(src))
+compress!(dest::Vector{Uint8}, src::Union(Array,String); kws...) = 
+    compress!(dest, pointer(src), sizeof(src); kws...)
+
+function compress{T}(src::Ptr{T}, src_size::Integer; kws...)
+    dest = Array(Uint8, src_size + MAX_OVERHEAD)
+    sz = compress!(dest,src,src_size; kws...)
+    assert(sz > 0 || src_size == 0)
     return resize!(dest, sz)
 end
+
+compress(src::Union(Array,String); kws...) = compress(pointer(src), sizeof(src); kws...)
 
 # given a compressed buffer, return the (uncompressed, compressed, block) size
 const sizes_vals = Array(Csize_t, 3)
