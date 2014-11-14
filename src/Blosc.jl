@@ -27,9 +27,9 @@ blosc_decompress(src, dest, destsize) =
 function compress!{T}(dest::Vector{Uint8}, src::Ptr{T}, src_size::Integer;
 	              level::Integer=5, shuffle::Bool=true,
                       itemsize::Integer=sizeof(T))	
-    0 ≤ level ≤ 9 || throw(ArgumentError("invalid compression level $level not in [0,9]"))
+    0 <= level <= 9 || throw(ArgumentError("invalid compression level $level not in [0,9]"))
     itemsize > 0 || throw(ArgumentError("itemsize must be positive"))
-    src_size ≤ MAX_BUFFERSIZE || throw(ArgumentError("data > $MAX_BUFFERSIZE bytes is not supported by Blosc"))
+    src_size <= MAX_BUFFERSIZE || throw(ArgumentError("data > $MAX_BUFFERSIZE bytes is not supported by Blosc"))
     sz = blosc_compress(level, shuffle, itemsize,
                         src_size, src, dest, sizeof(dest))
     sz < 0 && error("Blosc error $sz")
@@ -78,7 +78,7 @@ end
 decompress{T}(::Type{T}, src::Vector{Uint8}) = decompress!(Array(T,0), src)
 
 function set_num_threads(n::Integer=CPU_CORES)
-    1 ≤ n ≤ MAX_THREADS || throw(ArgumentError("must have 1 ≤ nthreads ≤ $MAX_THREADS"))
+    1 <= n <= MAX_THREADS || throw(ArgumentError("must have 1 ≤ nthreads ≤ $MAX_THREADS"))
     return ccall((:blosc_set_nthreads,libblosc), Cint, (Cint,), n)
 end
 
