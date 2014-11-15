@@ -46,13 +46,13 @@ ac = Blosc.compress(a)
 @test Blosc.decompress(Float64, ac) == a
 
 # test all compressors
-for (comp, name, _) in Blosc.compressors(libversion=true)
+for (comp, name, _) in Blosc.compressors_info()
     for level=0:9
         for shuffle in (true, false)
             for i=1:2048
                 a = rand(Uint8, i)
                 ac = Blosc.compress(a, level=level, shuffle=shuffle)
-                info = Blosc.metainfo(ac)
+                info = Blosc.compressor_info(ac)
                 @test info.library == name
                 @test info.typesize == sizeof(Uint8)
                 @test info.shuffled == shuffle

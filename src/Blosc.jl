@@ -142,7 +142,8 @@ immutable CompressionInfo
     shuffled::Bool
 end
 
-function metainfo(cbuf::DenseVector{Uint8})
+# return compressor information for a compressed buffer
+function compressor_info(cbuf::DenseVector{Uint8})
     flag, typesize = Cint[0], Csize_t[0]
     ccall((:blosc_cbuffer_metainfo, libblosc), Void,
           (Ptr{Void},Ptr{Csize_t},Ptr{Cint}), cbuf, typesize, flag)
@@ -153,24 +154,25 @@ function metainfo(cbuf::DenseVector{Uint8})
                            shuffled)
 end
 
+# list of compression libraries in the Blosc library build (list of strings)
+compressors() = split(bytestring(ccall((:blosc_list_compressors, libblosc), Ptr{Cchar}, ())), ',')
+
+# given a compressor in the Blosc library, return (library name, version number) tuple
+function compressor_info(name::String)
+    lib, ver = Array(Ptr{Cchar},1), Array(Ptr{Cchar},1)
+    ret = ccall((:blosc_get_complib_info, libblosc), Cint,
+                (Ptr{Cchar},Ptr{Ptr{Cchar}},Ptr{Ptr{Cchar}}),
+                name, lib, ver)
+    ret < 0 && error("Error retrieving compressor info for $name")
+    lib_str = bytestring(lib[1]); c_free(lib[1])
+    ver_str = bytestring(ver[1]); c_free(ver[1])
+    return (name, lib_str, convert(VersionNumber, ver_str))
+end
+
+
 # Get info from compression libraries included in the `Blosc` library build.
 # Returns an array of tuples, (library name, version number).
-function compressors(;libversion::Bool=false)
-    str_ptr = ccall((:blosc_list_compressors, libblosc), Ptr{Cchar}, ())
-    info = Any[]
-    lib, ver = Ptr{Cchar}[0], Ptr{Cchar}[0]
-    for name in split(bytestring(str_ptr), ',')
-        ret = ccall((:blosc_get_complib_info, libblosc), Cint,
-                    (Ptr{Cchar},Ptr{Ptr{Cchar}},Ptr{Ptr{Cchar}}),
-                    name, lib, ver)
-        ret < 0 && continue
-        lib_str = bytestring(lib[1]); c_free(lib[1])
-        ver_str = bytestring(ver[1]); c_free(ver[1])
-        libversion ? push!(info, (name, lib_str, convert(VersionNumber, ver_str))) :
-                     push!(info, name)
-    end
-    return info
-end
+compressors_info() = map(compressor_info, compressors())
 
 # Free possible memory temporaries and thread resources.
 # Use this when you are not going to use `Blosc` for a long while.
