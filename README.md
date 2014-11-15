@@ -33,4 +33,7 @@ The basic functions provided are:
 
 ## Author
 
-This module was written by [Steven G. Johnson](http://math.mit.edu/~stevenj/).
+This module was written by [Steven
+G. Johnson](http://math.mit.edu/~stevenj/) and [Jake
+Bolewski](https://github.com/jakebolewski/) (who had independently
+written his own Blosc.jl package which is now merged with this one).
