@@ -31,13 +31,30 @@ blosc_decompress(src, dest, destsize) =
     ccall((:blosc_decompress,libblosc), Cint,
           (Ptr{Void},Ptr{Void},Csize_t), src, dest, destsize)
 
+# check whether the strides of A correspond to contiguous data
+iscontiguous(::Array) = true
+iscontiguous(::Vector) = true
+iscontiguous(A::DenseVector) = stride(A,1) == 1
+function iscontiguous(A::DenseArray)
+    p = sortperm([strides(A)...])
+    s = 1
+    for k = 1:ndims(A)
+        if stride(A,p[k]) != s
+            return false
+        end
+        s *= size(A,p[k])
+    end
+    return true
+end
+
 # Returns the size of compressed data inside dest
-function compress!{T}(dest::Vector{Uint8},
+function compress!{T}(dest::DenseVector{Uint8},
                       src::Ptr{T},
                       src_size::Integer;
 	                  level::Integer=5,
                       shuffle::Bool=true,
                       itemsize::Integer=sizeof(T))
+    iscontiguous(dest) || throw(ArgumentError("dest must be contiguous array"))
     if !isbits(T)
         throw(ArgumentError("buffer eltype must be `isbits` type"))
     end
@@ -55,8 +72,13 @@ function compress!{T}(dest::Vector{Uint8},
     return convert(Int, sz)
 end
 
-compress!(dest::Vector{Uint8}, src::Union(Array,String); kws...) =
+compress!(dest::DenseVector{Uint8}, src::String; kws...) =
     compress!(dest, pointer(src), sizeof(src); kws...)
+
+function compress!(dest::DenseVector{Uint8}, src::DenseArray; kws...)
+    iscontiguous(src) || throw(ArgumentError("src must be a contiguous array"))
+    return compress!(dest, pointer(src), sizeof(src); kws...)
+end
 
 function compress{T}(src::Ptr{T}, src_size::Integer; kws...)
     dest = Array(Uint8, src_size + MAX_OVERHEAD)
@@ -64,7 +86,11 @@ function compress{T}(src::Ptr{T}, src_size::Integer; kws...)
     assert(sz > 0 || src_size == 0)
     return resize!(dest, sz)
 end
-compress(src::Union(Array,String); kws...) = compress(pointer(src), sizeof(src); kws...)
+function compress(src::DenseArray; kws...)
+    iscontiguous(src) || throw(ArgumentError("src must be a contiguous array"))
+    compress(pointer(src), sizeof(src); kws...)
+end
+compress(src::String; kws...) = compress(pointer(src), sizeof(src); kws...)
 
 # given a compressed buffer, return the (uncompressed, compressed, block) size
 const _sizes_vals = Array(Csize_t, 3)
@@ -80,6 +106,9 @@ end
 sizes(buf::Vector{Uint8}) = cbuffer_sizes(pointer(buf))
 
 function decompress!{T}(dest::DenseVector{T}, src::DenseVector{Uint8})
+    if !iscontiguous(dest) || !iscontiguous(src)
+        throw(ArgumentError("src and dest must be contiguous arrays"))
+    end
     if !isbits(T)
         throw(ArgumentError("dest must be a DenseVector of `isbits` element types"))
     end
@@ -129,6 +158,7 @@ end
 set_default_blocksize() = set_blocksize(0)
 
 function compression_library(src::DenseVector{Uint8})
+    iscontiguous(src) || throw(ArgumentError("src must be a contiguous array"))
     nptr = ccall((:blosc_cbuffer_complib,libblosc), Ptr{Cchar}, (Ptr{Void},), convert(Ptr{Void}, src))
     nptr == convert(Ptr{Cchar}, 0) && error("unknown compression library")
     name = bytestring(nptr)
@@ -144,10 +174,12 @@ end
 
 # return compressor information for a compressed buffer
 function compressor_info(cbuf::DenseVector{Uint8})
+    iscontiguous(cbuf) || throw(ArgumentError("cbuf must be contiguous array"))
     flag, typesize = Cint[0], Csize_t[0]
     ccall((:blosc_cbuffer_metainfo, libblosc), Void,
           (Ptr{Void},Ptr{Csize_t},Ptr{Cint}), cbuf, typesize, flag)
-    pure_memcopy, shuffled = bool(flag[1] & MEMCPYED), bool(flag[1] & DOSHUFFLE)
+    pure_memcopy = bool(flag[1] & MEMCPYED)
+    shuffled = bool(flag[1] & DOSHUFFLE)
     return CompressionInfo(compression_library(cbuf),
                            typesize[1],
                            pure_memcopy,
@@ -157,7 +189,7 @@ end
 # list of compression libraries in the Blosc library build (list of strings)
 compressors() = split(bytestring(ccall((:blosc_list_compressors, libblosc), Ptr{Cchar}, ())), ',')
 
-# given a compressor in the Blosc library, return (library name, version number) tuple
+# given a compressor in the Blosc library, return (compressor name, library name, version number) tuple
 function compressor_info(name::String)
     lib, ver = Array(Ptr{Cchar},1), Array(Ptr{Cchar},1)
     ret = ccall((:blosc_get_complib_info, libblosc), Cint,
