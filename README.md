@@ -1,5 +1,5 @@
 # The Blosc Module for Julia
-[![Build Status](https://travis-ci.org/stevengj/Blosc.jl.png)](https://travis-ci.org/stevengj/Blosc.jl) [![Coverage Status](https://coveralls.io/repos/stevengj/Blosc.jl/badge.png)](https://coveralls.io/r/stevengj/Blosc.jl)
+[![Build Status](https://travis-ci.org/stevengj/Blosc.jl.png)](https://travis-ci.org/stevengj/Blosc.jl) [![Build status](https://ci.appveyor.com/api/projects/status/xecc7ef70usxy4d5?svg=true)](https://ci.appveyor.com/project/StevenGJohnson/blosc-jl) [![Coverage Status](https://coveralls.io/repos/stevengj/Blosc.jl/badge.png)](https://coveralls.io/r/stevengj/Blosc.jl)
 
 This module provides fast lossless compression for the [Julia
 language](http://julialang.org/) by interfacing the [Blosc
