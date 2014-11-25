@@ -47,6 +47,7 @@ ac = Blosc.compress(a)
 
 # test all compressors
 for (comp, name, _) in Blosc.compressors_info()
+    Blosc.set_compressor(comp)
     for level=0:9
         for shuffle in (true, false)
             for i=1:2048
