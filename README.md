@@ -15,7 +15,7 @@ systems the Blosc library will be downloaded and compiled.
 
 ## Usage
 
-The basic functions provided are:
+The functions provided are:
 
 * `compress(src::Array{T}; level=5, shuffle=true, itemsize=sizeof(T))`: returns a `Vector{Uint8}` consisting of `src` in compressed form.  `level` is the compression level (between `0`=no compression and `9`=max), `shuffle` indicates whether to use Blosc's shuffling preconditioner, which is optimized for arrays of binary items of size `itemsize`.
 
