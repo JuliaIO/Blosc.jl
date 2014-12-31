@@ -4,7 +4,7 @@ vers = "1.5.0"
 
 tagfile = "installed_vers"
 target = "libblosc.$(Sys.dlext)"
-if !isfile(tagfile) || readchomp(tagfile) != vers
+if !isfile(tagfile) || readchomp(tagfile) != "$vers $WORD_SIZE"
     if OS_NAME == :Windows
         run(download_cmd("http://ab-initio.mit.edu/blosc/libblosc$WORD_SIZE-$vers.dll", target))
     elseif OS_NAME == :Darwin
@@ -26,5 +26,7 @@ if !isfile(tagfile) || readchomp(tagfile) != vers
             run(`gcc -shared -o ../../$target blosc.o blosclz.o shuffle.o`)
         end
     end
-    run(`echo $vers` |> tagfile)
+    open(tagfile, "w") do f
+        write(f, "$vers $WORD_SIZE")
+    end
 end
