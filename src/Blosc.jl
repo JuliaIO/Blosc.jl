@@ -1,7 +1,7 @@
 module Blosc
 export compress, compress!, decompress, decompress!
 
-const libblosc = Pkg.dir("Blosc", "deps", "libblosc")
+const libblosc = joinpath(dirname(@__FILE__), "..", "deps", "libblosc")
 
 function __init__()
     ccall((:blosc_init,libblosc), Void, ())
