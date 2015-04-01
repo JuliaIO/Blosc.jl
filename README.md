@@ -5,7 +5,13 @@ This module provides fast lossless compression for the [Julia
 language](http://julialang.org/) by interfacing the [Blosc
 Library](http://www.blosc.org/).
 
-Note that Blosc is currently [limited to 32-bit buffer sizes](https://github.com/Blosc/c-blosc/issues/67).
+Note that Blosc is currently [limited to 32-bit buffer
+sizes](https://github.com/Blosc/c-blosc/issues/67).  Blosc *does* run
+just fine on 64-bit systems; it just can't compress arrays bigger than
+2GB.  Note also that this limitation does not affect the use of Blosc
+compression [for HDF5](https://github.com/timholy/HDF5.jl), since HDF5
+breaks up large arrays into small chunks before compressing them.  So,
+don't worry about this if you are just using Blosc within the HDF5 package.
 
 ## Installation
 
