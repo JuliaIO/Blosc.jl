@@ -1,9 +1,10 @@
 using BinDeps
+using Compat
 
 vers = "1.5.0"
 
 tagfile = "installed_vers"
-target = "libblosc.$(Sys.dlext)"
+target = "libblosc.$(Libdl.dlext)"
 if !isfile(tagfile) || readchomp(tagfile) != "$vers $WORD_SIZE"
     if OS_NAME == :Windows
         run(download_cmd("http://ab-initio.mit.edu/blosc/libblosc$WORD_SIZE-$vers.dll", target))
