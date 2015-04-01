@@ -1,7 +1,7 @@
 using BinDeps
 using Compat
 
-vers = "1.5.0"
+vers = "1.5.3"
 
 tagfile = "installed_vers"
 target = "libblosc.$(Libdl.dlext)"
@@ -28,6 +28,6 @@ if !isfile(tagfile) || readchomp(tagfile) != "$vers $WORD_SIZE"
         end
     end
     open(tagfile, "w") do f
-        write(f, "$vers $WORD_SIZE")
+        println(f, "$vers $WORD_SIZE")
     end
 end
