@@ -180,8 +180,8 @@ function compressor_info(cbuf::DenseVector{UInt8})
     flag, typesize = Cint[0], Csize_t[0]
     ccall((:blosc_cbuffer_metainfo, libblosc), Void,
           (Ptr{Void},Ptr{Csize_t},Ptr{Cint}), cbuf, typesize, flag)
-    pure_memcopy = @compat Bool(flag[1] & MEMCPYED)
-    shuffled = @compat Bool(flag[1] & DOSHUFFLE)
+    pure_memcopy = flag[1] & MEMCPYED != 0
+    shuffled = flag[1] & DOSHUFFLE != 0
     return CompressionInfo(compression_library(cbuf),
                            typesize[1],
                            pure_memcopy,
