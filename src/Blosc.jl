@@ -1,3 +1,5 @@
+VERSION >= v"0.4.0-dev+6521" && __precompile__()
+
 module Blosc
 export compress, compress!, decompress, decompress!
 
@@ -195,7 +197,7 @@ compressors() = split(bytestring(ccall((:blosc_list_compressors, libblosc), Ptr{
 function compressor_info(name::AbstractString)
     lib, ver = Array(Ptr{Cchar},1), Array(Ptr{Cchar},1)
     ret = ccall((:blosc_get_complib_info, libblosc), Cint,
-                (Ptr{Cchar},Ptr{Ptr{Cchar}},Ptr{Ptr{Cchar}}),
+                (Cstring,Ptr{Ptr{Cchar}},Ptr{Ptr{Cchar}}),
                 name, lib, ver)
     ret < 0 && error("Error retrieving compressor info for $name")
     lib_str = bytestring(lib[1]); Libc.free(lib[1])
