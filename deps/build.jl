@@ -1,15 +1,16 @@
 using BinDeps
 using Compat
 
-vers = "1.5.3"
+vers = "1.7.0"
 
 tagfile = "installed_vers"
 target = "libblosc.$(Libdl.dlext)"
-if !isfile(tagfile) || readchomp(tagfile) != "$vers $WORD_SIZE"
+url = "https://bintray.com/artifact/download/julialang/generic/"
+if !isfile(target) || !isfile(tagfile) || readchomp(tagfile) != "$vers $WORD_SIZE"
     if OS_NAME == :Windows
-        run(download_cmd("http://ab-initio.mit.edu/blosc/libblosc$WORD_SIZE-$vers.dll", target))
+        run(download_cmd(url*"libblosc$WORD_SIZE-$vers.dll", target))
     elseif OS_NAME == :Darwin
-        run(download_cmd("http://ab-initio.mit.edu/blosc/libblosc$WORD_SIZE-$vers.dylib", target))
+        run(download_cmd(url*"libblosc$WORD_SIZE-$vers.dylib", target))
     else
         tarball = "c-blosc-$vers.tar.gz"
         srcdir = "c-blosc-$vers/blosc"
@@ -19,12 +20,8 @@ if !isfile(tagfile) || readchomp(tagfile) != "$vers $WORD_SIZE"
         run(unpack_cmd(tarball, ".", ".gz", ".tar"))
         cd(srcdir) do
             println("Compiling libblosc...")
-            for f in ("blosc.c", "blosclz.c", "shuffle.c")
-                println("   CC $f")
-                run(`gcc -fPIC -O3 -msse2 -I. -c $f`)
-            end
-            println("   LINK libblosc")
-            run(`gcc -shared -o ../../$target blosc.o blosclz.o shuffle.o`)
+            # TODO: enable AVX for gcc >= 4.9
+            run(`make -f ../../make.blosc HAVE_AVX=0 LIB=../../$target`)
         end
     end
     open(tagfile, "w") do f

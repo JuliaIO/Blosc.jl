@@ -1,0 +1,4 @@
+installed_vers
+.DS_Store
+deps/c-blosc*
+deps/libblosc.*
