@@ -1,0 +1,56 @@
+# Makefile to build libblosc for Julia Blosc.jl.  I'd rather use their
+# cmake stuff, but we need support for cross-compiling that they lack.
+# ... We compile with:
+#           make -f make.blosc clean
+#           make -f make.blosc CC=compiler LIB=libfile
+
+CC = gcc
+CFLAGS = -fPIC -O3 -pthread
+CPPFLAGS = -I. -DSHUFFLE_SSE2_ENABLED -DBLOSC_SHARED_LIBRARY
+
+LIB = libblosc.so
+
+AVX_OBJ = bitshuffle-avx2.o shuffle-avx2.o
+OTHER_OBJ = bitshuffle-sse2.o shuffle-sse2.o bitshuffle-generic.o shuffle-generic.o shuffle.o blosclz.o blosc.o
+
+# allow AVX to be disabled with HAVE_AVX=0, since older gcc versions don't support -mavx2
+HAVE_AVX=1
+ifeq ($(HAVE_AVX),0)
+OBJ = $(OTHER_OBJ)
+else
+OBJ = $(OTHER_OBJ) $(AVX_OBJ)
+CPPFLAGS += -DSHUFFLE_AVX2_ENABLED
+endif
+
+$(LIB): $(OBJ)
+	$(CC) $(CFLAGS) -shared $(OBJ) -o $(LIB)
+
+clean:
+	rm -f $(OBJ) $(LIB)
+
+bitshuffle-avx2.o: bitshuffle-avx2.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) -mavx2 -c -o $@ bitshuffle-avx2.c
+
+shuffle-avx2.o: shuffle-avx2.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) -mavx2 -c -o $@ shuffle-avx2.c
+
+bitshuffle-sse2.o: bitshuffle-sse2.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) -msse2 -c -o $@ bitshuffle-sse2.c
+
+shuffle-sse2.o: shuffle-sse2.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) -msse2 -c -o $@ shuffle-sse2.c
+
+bitshuffle-generic.o: bitshuffle-generic.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ bitshuffle-generic.c
+
+shuffle-generic.o: shuffle-generic.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ shuffle-generic.c
+
+shuffle.o: shuffle.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ shuffle.c
+
+blosclz.o: blosclz.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ blosclz.c
+
+blosc.o: blosc.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ blosc.c
