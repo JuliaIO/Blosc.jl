@@ -33,7 +33,7 @@ The functions provided are:
 
 * `Blosc.set_num_threads(n=CPU_CORES)`: tells Blosc to use `n` threads (initially `1`).
 
-* `Blosc.compressors()`: returns an array of strings for the available compression algorithms.
+* `Blosc.compressors()`: returns an array of strings for the available compression algorithms.  (Currently, only the `blosclz` algorithm is included.)
 
 * `Blosc.set_compressor(s::String)`: set the current compression algorithm
 
