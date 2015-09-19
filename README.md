@@ -23,13 +23,13 @@ systems the Blosc library will be downloaded and compiled.
 
 The functions provided are:
 
-* `compress(src::Array{T}; level=5, shuffle=true, itemsize=sizeof(T))`: returns a `Vector{Uint8}` consisting of `src` in compressed form.  `level` is the compression level (between `0`=no compression and `9`=max), `shuffle` indicates whether to use Blosc's shuffling preconditioner, which is optimized for arrays of binary items of size `itemsize`.
+* `compress(src::Array{T}; level=5, shuffle=true, itemsize=sizeof(T))`: returns a `Vector{UInt8}` consisting of `src` in compressed form.  `level` is the compression level (between `0`=no compression and `9`=max), `shuffle` indicates whether to use Blosc's shuffling preconditioner, which is optimized for arrays of binary items of size `itemsize`.
 
-* `compress!(dest::Vector{Uint8}, src; ...)`: as `compress`, but uses a pre-allocated destination buffer `dest`.  Returns the size (in bytes) of the compressed data, or `0` if the buffer was too small.
+* `compress!(dest::Vector{UInt8}, src; ...)`: as `compress`, but uses a pre-allocated destination buffer `dest`.  Returns the size (in bytes) of the compressed data, or `0` if the buffer was too small.
 
-* `decompress(T::Type, src::Vector{Uint8})`: return the compressed buffer `src` as an array of element type `T`.
+* `decompress(T::Type, src::Vector{UInt8})`: return the compressed buffer `src` as an array of element type `T`.
 
-* `decompress!(dest::Vector{T}, src::Vector{Uint8})`: like `decompress`, but uses a pre-allocated destination buffer, which is resized as needed to store the decompressed data.
+* `decompress!(dest::Vector{T}, src::Vector{UInt8})`: like `decompress`, but uses a pre-allocated destination buffer, which is resized as needed to store the decompressed data.
 
 * `Blosc.set_num_threads(n=CPU_CORES)`: tells Blosc to use `n` threads (initially `1`).
 
