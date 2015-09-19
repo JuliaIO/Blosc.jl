@@ -1,5 +1,6 @@
 using Blosc
 using Base.Test
+using Compat
 
 @test_throws ArgumentError Blosc.set_num_threads(0)
 @test_throws ArgumentError Blosc.set_num_threads(Blosc.MAX_THREADS + 1)
@@ -19,8 +20,8 @@ Blosc.set_default_blocksize()
 @test_throws ArgumentError Blosc.set_blocksize(-1)
 
 s = convert(ASCIIString, rand('0':'z', 10000))
-@test ASCIIString(decompress(Uint8, compress(s))) == s
-@test isempty(decompress(Uint8, compress("")))
+@test ASCIIString(decompress(UInt8, compress(s))) == s
+@test isempty(decompress(UInt8, compress("")))
 
 x = rand(100)
 @test decompress(eltype(x), compress(x)) == x
@@ -30,7 +31,7 @@ x = rand(100)
 roundtrip(orig) = Blosc.decompress(eltype(orig), Blosc.compress(orig)) == orig
 for ty in [Float16, Float32, Float64,
            Int8, Int16, Int32, Int64, Int128,
-           Uint8, Uint16, Uint32, Uint64, Uint128]
+           UInt8, UInt16, UInt32, UInt64, UInt128]
     for i=1:2048
         a = rand(ty, i)
         @test roundtrip(a)
@@ -51,13 +52,13 @@ for (comp, name, _) in Blosc.compressors_info()
     for level=0:9
         for shuffle in (true, false)
             for i=1:2048
-                a = rand(Uint8, i)
+                a = rand(UInt8, i)
                 ac = Blosc.compress(a, level=level, shuffle=shuffle)
                 info = Blosc.compressor_info(ac)
                 @test info.library == name
-                @test info.typesize == sizeof(Uint8)
+                @test info.typesize == sizeof(UInt8)
                 @test info.shuffled == shuffle
-                @test Blosc.decompress(Uint8, ac) == a
+                @test Blosc.decompress(UInt8, ac) == a
             end
         end
     end
@@ -65,7 +66,7 @@ end
 
 # test compress invalid args
 @test_throws ArgumentError Blosc.compress([BigInt(1)])
-@test_throws ArgumentError Blosc.compress(ones(Uint8, 256), level=-1)
-@test_throws ArgumentError Blosc.compress(ones(Uint8, 256), level=11)
+@test_throws ArgumentError Blosc.compress(ones(UInt8, 256), level=-1)
+@test_throws ArgumentError Blosc.compress(ones(UInt8, 256), level=11)
 
 @test Blosc.free_resources!()
