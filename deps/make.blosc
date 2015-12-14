@@ -6,20 +6,38 @@
 
 CC = gcc
 CFLAGS = -fPIC -O3 -pthread
-CPPFLAGS = -I. -DSHUFFLE_SSE2_ENABLED -DBLOSC_SHARED_LIBRARY
+CPPFLAGS = -I. -DBLOSC_SHARED_LIBRARY
 
 LIB = libblosc.so
 
-AVX_OBJ = bitshuffle-avx2.o shuffle-avx2.o
-OTHER_OBJ = bitshuffle-sse2.o shuffle-sse2.o bitshuffle-generic.o shuffle-generic.o shuffle.o blosclz.o blosc.o
+AVX2_OBJ = bitshuffle-avx2.o shuffle-avx2.o
+SSE2_OBJ = bitshuffle-sse2.o shuffle-sse2.o
+OTHER_OBJ = bitshuffle-generic.o shuffle-generic.o shuffle.o blosclz.o blosc.o
 
-# allow AVX to be disabled with HAVE_AVX=0, since older gcc versions don't support -mavx2
+ifeq ($(shell uname -m), x86_64)
 HAVE_AVX=1
-ifeq ($(HAVE_AVX),0)
-OBJ = $(OTHER_OBJ)
+HAVE_SSE=1
+else ifeq ($(shell uname -m), i686)
+HAVE_AVX=1
+HAVE_SSE=1
+else ifeq ($(shell uname -m), i386)
+HAVE_AVX=1
+HAVE_SSE=1
 else
-OBJ = $(OTHER_OBJ) $(AVX_OBJ)
-CPPFLAGS += -DSHUFFLE_AVX2_ENABLED
+HAVE_AVX=0
+HAVE_SSE=0
+endif
+
+# allow AVX to be disabled with HAVE_AVX=0, since older gcc versions
+# don't support -mavx2
+ifeq ($(HAVE_SSE),0)
+OBJ = $(OTHER_OBJ)
+else ifeq ($(HAVE_AVX),0)
+OBJ = $(OTHER_OBJ) $(SSE2_OBJ)
+CPPFLAGS += -DSHUFFLE_SSE2_ENABLED
+else
+OBJ = $(OTHER_OBJ) $(AVX2_OBJ) $(SSE2_OBJ)
+CPPFLAGS += -DSHUFFLE_AVX2_ENABLED -DSHUFFLE_SSE2_ENABLED
 endif
 
 $(LIB): $(OBJ)
