@@ -3,6 +3,8 @@
 # ... We compile with:
 #           make -f make.blosc clean
 #           make -f make.blosc CC=compiler LIB=libfile
+# Note: to cross-compile for Windows, use CFLAGS=-O3, and edit
+#       the blosc.c source file to force the inclusion of win32/pthread.*
 
 CC = gcc
 CFLAGS = -fPIC -O3 -pthread
