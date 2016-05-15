@@ -3,7 +3,7 @@ VERSION >= v"0.4.0-dev+6521" && __precompile__()
 module Blosc
 export compress, compress!, decompress, decompress!
 
-using Compat
+using Compat; import Compat.String
 
 const libblosc = joinpath(dirname(@__FILE__), "..", "deps", "libblosc")
 
@@ -170,7 +170,7 @@ function compression_library(src::DenseVector{UInt8})
 end
 
 immutable CompressionInfo
-    library::ByteString
+    library::String
     typesize::Int
     pure_memcopy::Bool
     shuffled::Bool
