@@ -6,11 +6,11 @@ vers = "1.8.1"
 tagfile = "installed_vers"
 target = "libblosc.$(Libdl.dlext)"
 url = "https://bintray.com/artifact/download/julialang/generic/"
-if !isfile(target) || !isfile(tagfile) || readchomp(tagfile) != "$vers $WORD_SIZE"
+if !isfile(target) || !isfile(tagfile) || readchomp(tagfile) != "$vers $(Sys.WORD_SIZE)"
     if OS_NAME == :Windows
-        run(download_cmd(url*"libblosc$WORD_SIZE-$vers.dll", target))
+        run(download_cmd(url*"libblosc$(Sys.WORD_SIZE)-$vers.dll", target))
     elseif OS_NAME == :Darwin
-        run(download_cmd(url*"libblosc$WORD_SIZE-$vers.dylib", target))
+        run(download_cmd(url*"libblosc$(Sys.WORD_SIZE)-$vers.dylib", target))
     else
         tarball = "c-blosc-$vers.tar.gz"
         srcdir = "c-blosc-$vers/blosc"
@@ -25,6 +25,6 @@ if !isfile(target) || !isfile(tagfile) || readchomp(tagfile) != "$vers $WORD_SIZ
         end
     end
     open(tagfile, "w") do f
-        println(f, "$vers $WORD_SIZE")
+        println(f, "$vers $(Sys.WORD_SIZE)")
     end
 end

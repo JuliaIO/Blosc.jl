@@ -4,6 +4,7 @@ module Blosc
 export compress, compress!, decompress, decompress!
 
 using Compat
+import Compat.String
 
 const libblosc = joinpath(dirname(@__FILE__), "..", "deps", "libblosc")
 
@@ -161,16 +162,22 @@ end
 # Allow Blosc to set the optimal blocksize (default)
 set_default_blocksize() = set_blocksize(0)
 
+if VERSION < v"0.5-"
+    _bytestring = bytestring
+else
+    _bytestring = unsafe_string
+end
+
 function compression_library(src::DenseVector{UInt8})
     iscontiguous(src) || throw(ArgumentError("src must be a contiguous array"))
     nptr = ccall((:blosc_cbuffer_complib,libblosc), Ptr{Cchar}, (Ptr{UInt8},), src)
     nptr == convert(Ptr{Cchar}, 0) && error("unknown compression library")
-    name = bytestring(nptr)
+    name = _bytestring(nptr)
     return name
 end
 
 immutable CompressionInfo
-    library::ByteString
+    library::String
     typesize::Int
     pure_memcopy::Bool
     shuffled::Bool
@@ -191,7 +198,7 @@ function compressor_info(cbuf::DenseVector{UInt8})
 end
 
 # list of compression libraries in the Blosc library build (list of strings)
-compressors() = split(bytestring(ccall((:blosc_list_compressors, libblosc), Ptr{Cchar}, ())), ',')
+compressors() = split(_bytestring(ccall((:blosc_list_compressors, libblosc), Ptr{Cchar}, ())), ',')
 
 # given a compressor in the Blosc library, return (compressor name, library name, version number) tuple
 function compressor_info(name::AbstractString)
@@ -200,8 +207,8 @@ function compressor_info(name::AbstractString)
                 (Cstring,Ptr{Ptr{Cchar}},Ptr{Ptr{Cchar}}),
                 name, lib, ver)
     ret < 0 && error("Error retrieving compressor info for $name")
-    lib_str = bytestring(lib[1]); Libc.free(lib[1])
-    ver_str = bytestring(ver[1]); Libc.free(ver[1])
+    lib_str = _bytestring(lib[1]); Libc.free(lib[1])
+    ver_str = _bytestring(ver[1]); Libc.free(ver[1])
     return (name, lib_str, convert(VersionNumber, ver_str))
 end
 
