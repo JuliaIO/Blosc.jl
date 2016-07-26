@@ -162,17 +162,11 @@ end
 # Allow Blosc to set the optimal blocksize (default)
 set_default_blocksize() = set_blocksize(0)
 
-if VERSION < v"0.5-"
-    _bytestring = bytestring
-else
-    _bytestring = unsafe_string
-end
-
 function compression_library(src::DenseVector{UInt8})
     iscontiguous(src) || throw(ArgumentError("src must be a contiguous array"))
-    nptr = ccall((:blosc_cbuffer_complib,libblosc), Ptr{Cchar}, (Ptr{UInt8},), src)
-    nptr == convert(Ptr{Cchar}, 0) && error("unknown compression library")
-    name = _bytestring(nptr)
+    nptr = ccall((:blosc_cbuffer_complib,libblosc), Ptr{UInt8}, (Ptr{UInt8},), src)
+    nptr == convert(Ptr{UInt8}, 0) && error("unknown compression library")
+    name = unsafe_string(nptr)
     return name
 end
 
@@ -198,17 +192,17 @@ function compressor_info(cbuf::DenseVector{UInt8})
 end
 
 # list of compression libraries in the Blosc library build (list of strings)
-compressors() = split(_bytestring(ccall((:blosc_list_compressors, libblosc), Ptr{Cchar}, ())), ',')
+compressors() = split(unsafe_string(ccall((:blosc_list_compressors, libblosc), Ptr{UInt8}, ())), ',')
 
 # given a compressor in the Blosc library, return (compressor name, library name, version number) tuple
 function compressor_info(name::AbstractString)
-    lib, ver = Array(Ptr{Cchar},1), Array(Ptr{Cchar},1)
+    lib, ver = Array(Ptr{UInt8},1), Array(Ptr{UInt8},1)
     ret = ccall((:blosc_get_complib_info, libblosc), Cint,
-                (Cstring,Ptr{Ptr{Cchar}},Ptr{Ptr{Cchar}}),
+                (Cstring,Ptr{Ptr{UInt8}},Ptr{Ptr{UInt8}}),
                 name, lib, ver)
     ret < 0 && error("Error retrieving compressor info for $name")
-    lib_str = _bytestring(lib[1]); Libc.free(lib[1])
-    ver_str = _bytestring(ver[1]); Libc.free(ver[1])
+    lib_str = unsafe_wrap(Compat.String, lib[1], true)
+    ver_str = unsafe_wrap(Compat.String, ver[1], true)
     return (name, lib_str, convert(VersionNumber, ver_str))
 end
 
