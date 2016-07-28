@@ -1,6 +1,7 @@
 using Blosc
 using Base.Test
 using Compat
+import Compat.ASCIIString
 
 @test_throws ArgumentError Blosc.set_num_threads(0)
 @test_throws ArgumentError Blosc.set_num_threads(Blosc.MAX_THREADS + 1)

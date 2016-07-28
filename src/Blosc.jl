@@ -4,6 +4,7 @@ module Blosc
 export compress, compress!, decompress, decompress!
 
 using Compat
+import Compat.String
 
 const libblosc = joinpath(dirname(@__FILE__), "..", "deps", "libblosc")
 
@@ -163,14 +164,14 @@ set_default_blocksize() = set_blocksize(0)
 
 function compression_library(src::DenseVector{UInt8})
     iscontiguous(src) || throw(ArgumentError("src must be a contiguous array"))
-    nptr = ccall((:blosc_cbuffer_complib,libblosc), Ptr{Cchar}, (Ptr{UInt8},), src)
-    nptr == convert(Ptr{Cchar}, 0) && error("unknown compression library")
-    name = bytestring(nptr)
+    nptr = ccall((:blosc_cbuffer_complib,libblosc), Ptr{UInt8}, (Ptr{UInt8},), src)
+    nptr == convert(Ptr{UInt8}, 0) && error("unknown compression library")
+    name = unsafe_string(nptr)
     return name
 end
 
 immutable CompressionInfo
-    library::ByteString
+    library::String
     typesize::Int
     pure_memcopy::Bool
     shuffled::Bool
@@ -191,17 +192,17 @@ function compressor_info(cbuf::DenseVector{UInt8})
 end
 
 # list of compression libraries in the Blosc library build (list of strings)
-compressors() = split(bytestring(ccall((:blosc_list_compressors, libblosc), Ptr{Cchar}, ())), ',')
+compressors() = split(unsafe_string(ccall((:blosc_list_compressors, libblosc), Ptr{UInt8}, ())), ',')
 
 # given a compressor in the Blosc library, return (compressor name, library name, version number) tuple
 function compressor_info(name::AbstractString)
-    lib, ver = Array(Ptr{Cchar},1), Array(Ptr{Cchar},1)
+    lib, ver = Array(Ptr{UInt8},1), Array(Ptr{UInt8},1)
     ret = ccall((:blosc_get_complib_info, libblosc), Cint,
-                (Cstring,Ptr{Ptr{Cchar}},Ptr{Ptr{Cchar}}),
+                (Cstring,Ptr{Ptr{UInt8}},Ptr{Ptr{UInt8}}),
                 name, lib, ver)
     ret < 0 && error("Error retrieving compressor info for $name")
-    lib_str = bytestring(lib[1]); Libc.free(lib[1])
-    ver_str = bytestring(ver[1]); Libc.free(ver[1])
+    lib_str = unsafe_wrap(Compat.String, lib[1], true)
+    ver_str = unsafe_wrap(Compat.String, ver[1], true)
     return (name, lib_str, convert(VersionNumber, ver_str))
 end
 
