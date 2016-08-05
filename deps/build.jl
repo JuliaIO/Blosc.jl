@@ -7,9 +7,9 @@ tagfile = "installed_vers"
 target = "libblosc.$(Libdl.dlext)"
 url = "https://bintray.com/artifact/download/julialang/generic/"
 if !isfile(target) || !isfile(tagfile) || readchomp(tagfile) != "$vers $(Sys.WORD_SIZE)"
-    if OS_NAME == :Windows
+    if Compat.KERNEL == :NT
         run(download_cmd(url*"libblosc$(Sys.WORD_SIZE)-$vers.dll", target))
-    elseif OS_NAME == :Darwin
+    elseif Compat.KERNEL == :Darwin
         run(download_cmd(url*"libblosc$(Sys.WORD_SIZE)-$vers.dylib", target))
     else
         tarball = "c-blosc-$vers.tar.gz"
