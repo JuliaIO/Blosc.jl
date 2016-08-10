@@ -16,22 +16,23 @@ AVX2_OBJ = bitshuffle-avx2.o shuffle-avx2.o
 SSE2_OBJ = bitshuffle-sse2.o shuffle-sse2.o
 OTHER_OBJ = bitshuffle-generic.o shuffle-generic.o shuffle.o blosclz.o blosc.o
 
+# Check whether the option -mavx2 is supported
+CHECK_AVX2 = $(shell if $(CC) $(CPPFLAGS) $(CFLAGS) -mavx2 -c -o shuffle-avx2.tmp shuffle-avx2.c; then echo 1; else echo 0; fi; rm -f shuffle-avx2.tmp)
+
 ifeq ($(shell uname -m), x86_64)
-HAVE_AVX=1
+HAVE_AVX=$(CHECK_AVX2)
 HAVE_SSE=1
 else ifeq ($(shell uname -m), i686)
-HAVE_AVX=1
+HAVE_AVX=$(CHECK_AVX2)
 HAVE_SSE=1
 else ifeq ($(shell uname -m), i386)
-HAVE_AVX=1
+HAVE_AVX=$(CHECK_AVX2)
 HAVE_SSE=1
 else
 HAVE_AVX=0
 HAVE_SSE=0
 endif
 
-# allow AVX to be disabled with HAVE_AVX=0, since older gcc versions
-# don't support -mavx2
 ifeq ($(HAVE_SSE),0)
 OBJ = $(OTHER_OBJ)
 else ifeq ($(HAVE_AVX),0)
@@ -49,12 +50,14 @@ clean:
 	rm -f $(OBJ) $(LIB)
 
 bitshuffle-avx2.o: bitshuffle-avx2.c
+	echo "building with AVX2"
 	$(CC) $(CPPFLAGS) $(CFLAGS) -mavx2 -c -o $@ bitshuffle-avx2.c
 
 shuffle-avx2.o: shuffle-avx2.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -mavx2 -c -o $@ shuffle-avx2.c
 
 bitshuffle-sse2.o: bitshuffle-sse2.c
+	echo "building without AVX2"
 	$(CC) $(CPPFLAGS) $(CFLAGS) -msse2 -c -o $@ bitshuffle-sse2.c
 
 shuffle-sse2.o: shuffle-sse2.c
