@@ -20,8 +20,7 @@ if !isfile(target) || !isfile(tagfile) || readchomp(tagfile) != "$vers $(Sys.WOR
         run(unpack_cmd(tarball, ".", ".gz", ".tar"))
         cd(srcdir) do
             println("Compiling libblosc...")
-            # TODO: enable AVX for gcc >= 4.9
-            run(`make -f ../../make.blosc HAVE_AVX=0 LIB=../../$target`)
+            run(`make -f ../../make.blosc LIB=../../$target`)
         end
     end
     open(tagfile, "w") do f
