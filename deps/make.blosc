@@ -19,6 +19,12 @@ OTHER_OBJ = bitshuffle-generic.o shuffle-generic.o shuffle.o blosclz.o blosc.o
 # Check whether the option -mavx2 is supported
 CHECK_AVX2 = $(shell if $(CC) $(CPPFLAGS) $(CFLAGS) -mavx2 -c -o shuffle-avx2.tmp shuffle-avx2.c; then echo 1; else echo 0; fi; rm -f shuffle-avx2.tmp)
 
+# include internal LZ4
+# there will only be one LZ4 dir
+LZ4_DIR = $(wildcard ../internal-complibs/lz4-*)
+OTHER_OBJ += $(LZ4_DIR)/lz4.o $(LZ4_DIR)/lz4hc.o
+CFLAGS += -DHAVE_LZ4 -I$(LZ4_DIR)
+
 ifeq ($(shell uname -m), x86_64)
 HAVE_AVX=$(CHECK_AVX2)
 HAVE_SSE=1
@@ -77,3 +83,9 @@ blosclz.o: blosclz.c
 
 blosc.o: blosc.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ blosc.c
+
+$(LZ4_DIR)/lz4.o: $(LZ4_DIR)/lz4.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(LZ4_DIR)/lz4.c
+
+$(LZ4_DIR)/lz4hc.o: $(LZ4_DIR)/lz4hc.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(LZ4_DIR)/lz4hc.c
