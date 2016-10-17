@@ -35,7 +35,7 @@ The functions provided are:
 
 * `Blosc.compressors()`: returns an array of strings for the available compression algorithms.  (Currently, only the `blosclz`, `lz4`, and `lz4hc` algorithms are included.)
 
-* `Blosc.set_compressor(s::String)`: set the current compression algorithm
+* `Blosc.set_compressor(s::AbstractString)`: set the current compression algorithm
 
 ## Author
 
