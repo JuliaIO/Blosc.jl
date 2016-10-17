@@ -7,7 +7,7 @@
 #       the blosc.c source file to force the inclusion of win32/pthread.*
 
 CC = gcc
-CFLAGS = -fPIC -O3 -pthread
+CFLAGS = -fPIC -O3 -pthread -std=gnu99
 CPPFLAGS = -I. -DBLOSC_SHARED_LIBRARY
 
 LIB = libblosc.so
