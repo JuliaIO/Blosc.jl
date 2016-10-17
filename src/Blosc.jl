@@ -148,7 +148,7 @@ end
 # If this function is not called, "blosclz" will be used.
 # Throws an ArgumentError if the given compressor is not supported
 function set_compressor(s::AbstractString)
-    compcode = ccall((:blosc_set_compressor,libblosc), Cint, (Ptr{UInt8},), s)
+    compcode = ccall((:blosc_set_compressor,libblosc), Cint, (Cstring,), s)
     compcode == -1 && throw(ArgumentError("unrecognized compressor $s"))
     return compcode
 end
