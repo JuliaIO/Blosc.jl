@@ -17,7 +17,7 @@ end
 Blosc.set_blocksize(16)
 Blosc.set_blocksize(256)
 Blosc.set_blocksize(0)
-Blosc.set_default_blocksize()
+Blosc.set_blocksize()
 @test_throws ArgumentError Blosc.set_blocksize(-1)
 
 s = convert(ASCIIString, rand('0':'z', 10000))

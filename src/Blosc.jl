@@ -97,6 +97,29 @@ function compress(src::DenseArray; kws...)
 end
 compress(src::AbstractString; kws...) = compress(pointer(src), sizeof(src); kws...)
 
+"""
+    compress(data; level=5, shuffle=true, itemsize)
+
+Return a `Vector{UInt8}` of the Blosc-compressed `data`, where `data`
+is an array or a string.
+
+The `level` keyword indicates the compression level
+(between `0`=no compression and `9`=max), `shuffle` indicates whether to use
+Blosc's shuffling preconditioner, and the shuffling preconditioner
+is optimized for arrays of binary items of size (in bytes) `itemsize` (defaults
+to `sizeof(eltype(data))` for arrays and the size of the code units for strings).
+"""
+compress
+
+"""
+    compress!(dest::Vector{UInt8}, src; kws...)
+
+Like `compress(src; kws...)`, but writes to a pre-allocated array `dest`
+of bytes.   The return value is the size in bytes of the data written
+to `dest`, or `0` if the buffer was too small.
+"""
+compress!
+
 # given a compressed buffer, return the (uncompressed, compressed, block) size
 const _sizes_vals = Array(Csize_t, 3)
 function cbuffer_sizes(buf::Ptr)
@@ -108,8 +131,20 @@ function cbuffer_sizes(buf::Ptr)
           pointer(_sizes_vals, 3))
     return (_sizes_vals[1], _sizes_vals[2], _sizes_vals[3])
 end
+"""
+    sizes(buf::Vector{UInt8})
+
+Given a compressed buffer `buf`, return a tuple
+of the `(uncompressed, compressed, block)` sizes in bytes.
+"""
 sizes(buf::Vector{UInt8}) = cbuffer_sizes(pointer(buf))
 
+"""
+    decompress!(dest::Vector{T}, src::Vector{UInt8})
+
+Like `decompress`, but uses a pre-allocated destination buffer `dest`,
+which is resized as needed to store the decompressed data from `src`.
+"""
 function decompress!{T}(dest::DenseVector{T}, src::DenseVector{UInt8})
     if !iscontiguous(dest) || !iscontiguous(src)
         throw(ArgumentError("src and dest must be contiguous arrays"))
@@ -132,52 +167,84 @@ function decompress!{T}(dest::DenseVector{T}, src::DenseVector{UInt8})
     sz <  0 && error("Blosc decompress error, output buffer is not large enough")
     return dest
 end
+"""
+    decompress(T::Type, src::Vector{UInt8})
+
+Return the compressed buffer `src` as an array of element type `T`.
+"""
 decompress{T}(::Type{T}, src::DenseVector{UInt8}) =
     decompress!(Array(T,0), src)
 
 # Initialize a pool of threads for compression / decompression.
 # If `nthreads` is 1, the the serial version is chosen and a possible previous existing pool is ended.
 # If this function is not callled, `nthreads` is set to 1 internally.
-function set_num_threads(n::Integer=CPU_CORES)
+"""
+    set_num_threads(n=Sys.CPU_CORES)
+
+Tells Blosc to use `n` threads for compression/decompression.   If this
+function is never called, the default is `1` (serial).
+"""
+function set_num_threads(n::Integer=Sys.CPU_CORES)
     1 <= n <= MAX_THREADS || throw(ArgumentError("must have 1 ≤ nthreads ≤ $MAX_THREADS"))
     return ccall((:blosc_set_nthreads,libblosc), Cint, (Cint,), n)
 end
 
-# Select the compressor to be used.
-# Supported ones are "blosclz", "lz4", "lz4hc", "snappy", and "zlib".
-# If this function is not called, "blosclz" will be used.
-# Throws an ArgumentError if the given compressor is not supported
+"""
+    set_compressor(s::AbstractString)
+
+Set the current compression algorithm to `s`.  The currently supported
+algorithms in the default Blosc module build are `"blosclz"`, `"lz4"`,
+and `"l4hc"`.   (Throws an `ArgumentError` if `s` is not the name
+of a supported algorithm.)  Returns a nonnegative integer code used
+internally by Blosc to identify the compressor.
+"""
 function set_compressor(s::AbstractString)
     compcode = ccall((:blosc_set_compressor,libblosc), Cint, (Cstring,), s)
     compcode == -1 && throw(ArgumentError("unrecognized compressor $s"))
     return compcode
 end
 
-# Force the use of a specific blocksize
-function set_blocksize(blocksize::Integer)
+"""
+    set_blocksize(blocksize=0)
+
+Force the use of a specific compression `blocksize`. If `0` (the default), an
+appropriate blocksize will be chosen automatically by blosc.
+"""
+function set_blocksize(blocksize::Integer=0)
     blocksize >= 0 || throw(ArgumentError("n must be ≥ 0 (default)"))
     ccall((:blosc_set_blocksize,libblosc), Void, (Csize_t,), blocksize)
 end
+@deprecate set_default_blocksize() set_blocksize()
 
-# Allow Blosc to set the optimal blocksize (default)
-set_default_blocksize() = set_blocksize(0)
+"""
+    compressor_name(src::Vector{UInt8})
 
-function compression_library(src::DenseVector{UInt8})
+Given a compressed array `src`, returns the name (string) of the
+compression library that was used to generate it.  (This is not
+the same as the name of the compression algorithm.)
+"""
+function compressor_library(src::DenseVector{UInt8})
     iscontiguous(src) || throw(ArgumentError("src must be a contiguous array"))
     nptr = ccall((:blosc_cbuffer_complib,libblosc), Ptr{UInt8}, (Ptr{UInt8},), src)
     nptr == convert(Ptr{UInt8}, 0) && error("unknown compression library")
     name = unsafe_string(nptr)
     return name
 end
+@deprecate compression_library(src::DenseVector{UInt8}) compressor_library(src)
 
 immutable CompressionInfo
-    library::String
+    library::Compat.UTF8String
     typesize::Int
     pure_memcopy::Bool
     shuffled::Bool
 end
 
-# return compressor information for a compressed buffer
+"""
+    compressor_info(src::Vector{UInt8})
+
+Given a compressed array `src`, returns the information about the
+compression algorithm used in a `CompressionInfo` data structure.
+"""
 function compressor_info(cbuf::DenseVector{UInt8})
     iscontiguous(cbuf) || throw(ArgumentError("cbuf must be contiguous array"))
     flag, typesize = Cint[0], Csize_t[0]
@@ -185,16 +252,26 @@ function compressor_info(cbuf::DenseVector{UInt8})
           (Ptr{Void},Ptr{Csize_t},Ptr{Cint}), cbuf, typesize, flag)
     pure_memcopy = flag[1] & MEMCPYED != 0
     shuffled = flag[1] & DOSHUFFLE != 0
-    return CompressionInfo(compression_library(cbuf),
+    return CompressionInfo(compressor_name(cbuf),
                            typesize[1],
                            pure_memcopy,
                            shuffled)
 end
 
-# list of compression libraries in the Blosc library build (list of strings)
+"""
+    compressors()
+
+Return the list of compression algorithms in the Blosc library build
+as an array of strings.
+"""
 compressors() = split(unsafe_string(ccall((:blosc_list_compressors, libblosc), Ptr{UInt8}, ())), ',')
 
-# given a compressor in the Blosc library, return (compressor name, library name, version number) tuple
+"""
+    compressor_info(name::AbstractString)
+
+Given the `name` of a compressor in the Blosc library, return a tuple
+`(compressor name, library name, version number)`.
+"""
 function compressor_info(name::AbstractString)
     lib, ver = Array(Ptr{UInt8},1), Array(Ptr{UInt8},1)
     ret = ccall((:blosc_get_complib_info, libblosc), Cint,
@@ -206,14 +283,22 @@ function compressor_info(name::AbstractString)
     return (name, lib_str, convert(VersionNumber, ver_str))
 end
 
+"""
+    compressors_info()
 
-# Get info from compression libraries included in the `Blosc` library build.
-# Returns an array of tuples, (library name, version number).
+Return an array of tuples `(compressor name, library name, version number)`
+for all of the compression libraries included in the Blosc library build.
+"""
 compressors_info() = map(compressor_info, compressors())
 
-# Free possible memory temporaries and thread resources.
-# Use this when you are not going to use `Blosc` for a long while.
-# In case of problems releasing resources, it returns false, else returns true.
+"""
+    free_resources!()
+
+Free possible memory temporaries and thread resources.
+Use this when you are not going to use Blosc for a long while.
+In case of problems releasing resources, it returns `false`,
+whereas it returns `true` on success.
+"""
 free_resources!() = ccall((:blosc_free_resources,libblosc), Cint, ()) == 0
 
 end # module
