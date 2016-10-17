@@ -252,7 +252,7 @@ function compressor_info(cbuf::DenseVector{UInt8})
           (Ptr{Void},Ptr{Csize_t},Ptr{Cint}), cbuf, typesize, flag)
     pure_memcopy = flag[1] & MEMCPYED != 0
     shuffled = flag[1] & DOSHUFFLE != 0
-    return CompressionInfo(compressor_name(cbuf),
+    return CompressionInfo(compressor_library(cbuf),
                            typesize[1],
                            pure_memcopy,
                            shuffled)
