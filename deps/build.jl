@@ -1,7 +1,7 @@
 using BinDeps
 using Compat
 
-vers = "1.8.1"
+vers = "1.11.1"
 
 tagfile = "installed_vers"
 target = "libblosc.$(Libdl.dlext)"
