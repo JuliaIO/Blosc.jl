@@ -56,7 +56,7 @@ end
 function compress!{T}(dest::DenseVector{UInt8},
                       src::Ptr{T},
                       src_size::Integer;
-	                  level::Integer=5,
+                      level::Integer=5,
                       shuffle::Bool=true,
                       itemsize::Integer=sizeof(T))
     iscontiguous(dest) || throw(ArgumentError("dest must be contiguous array"))
@@ -86,7 +86,7 @@ function compress!(dest::DenseVector{UInt8}, src::DenseArray; kws...)
 end
 
 function compress{T}(src::Ptr{T}, src_size::Integer; kws...)
-    dest = Array(UInt8, src_size + MAX_OVERHEAD)
+    dest = Vector{UInt8}(src_size + MAX_OVERHEAD)
     sz = compress!(dest,src,src_size; kws...)
     assert(sz > 0 || src_size == 0)
     return resize!(dest, sz)
@@ -121,7 +121,7 @@ to `dest`, or `0` if the buffer was too small.
 compress!
 
 # given a compressed buffer, return the (uncompressed, compressed, block) size
-const _sizes_vals = Array(Csize_t, 3)
+const _sizes_vals = Vector{Csize_t}(3)
 function cbuffer_sizes(buf::Ptr)
     ccall((:blosc_cbuffer_sizes,libblosc), Void,
           (Ptr{Void}, Ptr{Csize_t}, Ptr{Csize_t}, Ptr{Csize_t}),
@@ -173,7 +173,7 @@ end
 Return the compressed buffer `src` as an array of element type `T`.
 """
 decompress{T}(::Type{T}, src::DenseVector{UInt8}) =
-    decompress!(Array(T,0), src)
+    decompress!(Vector{T}(0), src)
 
 # Initialize a pool of threads for compression / decompression.
 # If `nthreads` is 1, the the serial version is chosen and a possible previous existing pool is ended.
@@ -266,6 +266,16 @@ as an array of strings.
 """
 compressors() = split(unsafe_string(ccall((:blosc_list_compressors, libblosc), Ptr{UInt8}, ())), ',')
 
+if isdefined("", :data)
+    take_cstring(ptr) = unsafe_wrap(Compat.String, ptr, true)
+else
+    function take_cstring(ptr)
+        str = unsafe_string(ptr)
+        ccall(:free, Void, (Ptr{Void},), ptr)
+        return str
+    end
+end
+
 """
     compressor_info(name::AbstractString)
 
@@ -273,13 +283,13 @@ Given the `name` of a compressor in the Blosc library, return a tuple
 `(compressor name, library name, version number)`.
 """
 function compressor_info(name::AbstractString)
-    lib, ver = Array(Ptr{UInt8},1), Array(Ptr{UInt8},1)
+    lib, ver = Ref{Ptr{UInt8}}(), Ref{Ptr{UInt8}}()
     ret = ccall((:blosc_get_complib_info, libblosc), Cint,
                 (Cstring,Ptr{Ptr{UInt8}},Ptr{Ptr{UInt8}}),
                 name, lib, ver)
     ret < 0 && error("Error retrieving compressor info for $name")
-    lib_str = unsafe_wrap(Compat.String, lib[1], true)
-    ver_str = unsafe_wrap(Compat.String, ver[1], true)
+    lib_str = take_cstring(lib[])
+    ver_str = take_cstring(ver[])
     return (name, lib_str, convert(VersionNumber, ver_str))
 end
 
