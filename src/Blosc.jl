@@ -4,7 +4,7 @@ module Blosc
 export compress, compress!, decompress, decompress!
 
 using Compat
-import Compat.String
+using Compat.String
 
 const libblosc = joinpath(dirname(@__FILE__), "..", "deps", "libblosc")
 
