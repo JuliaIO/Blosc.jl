@@ -290,7 +290,7 @@ function compressor_info(name::AbstractString)
     ret < 0 && error("Error retrieving compressor info for $name")
     lib_str = take_cstring(lib[])
     ver_str = take_cstring(ver[])
-    return (name, lib_str, convert(VersionNumber, ver_str))
+    return (name, lib_str, ver_str == "unknown" ? v"0.0.0" : convert(VersionNumber, ver_str))
 end
 
 """
