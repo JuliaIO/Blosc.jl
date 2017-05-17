@@ -6,6 +6,7 @@ vers = "1.11.1"
 tagfile = "installed_vers"
 target = "libblosc.$(Libdl.dlext)"
 url = "https://bintray.com/artifact/download/julialang/generic/"
+make = is_bsd() && !is_apple() ? "gmake" : "make"
 if !isfile(target) || !isfile(tagfile) || readchomp(tagfile) != "$vers $(Sys.WORD_SIZE)"
     if Compat.KERNEL == :NT
         run(download_cmd(url*"libblosc$(Sys.WORD_SIZE)-$vers.dll", target))
@@ -20,7 +21,7 @@ if !isfile(target) || !isfile(tagfile) || readchomp(tagfile) != "$vers $(Sys.WOR
         run(unpack_cmd(tarball, ".", ".gz", ".tar"))
         cd(srcdir) do
             println("Compiling libblosc...")
-            run(`make -f ../../make.blosc LIB=../../$target`)
+            run(`$make -f ../../make.blosc LIB=../../$target`)
         end
     end
     open(tagfile, "w") do f
