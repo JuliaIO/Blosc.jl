@@ -3,9 +3,6 @@ __precompile__()
 module Blosc
 export compress, compress!, decompress, decompress!
 
-using Compat
-using Compat.String
-
 const libblosc = joinpath(dirname(@__FILE__), "..", "deps", "libblosc")
 
 function __init__()
@@ -233,7 +230,7 @@ end
 @deprecate compression_library(src::DenseVector{UInt8}) compressor_library(src)
 
 immutable CompressionInfo
-    library::Compat.UTF8String
+    library::String
     typesize::Int
     pure_memcopy::Bool
     shuffled::Bool
@@ -267,7 +264,7 @@ as an array of strings.
 compressors() = split(unsafe_string(ccall((:blosc_list_compressors, libblosc), Ptr{UInt8}, ())), ',')
 
 if isdefined("", :data)
-    take_cstring(ptr) = unsafe_wrap(Compat.String, ptr, true)
+    take_cstring(ptr) = unsafe_wrap(String, ptr, true)
 else
     function take_cstring(ptr)
         str = unsafe_string(ptr)

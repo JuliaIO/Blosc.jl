@@ -1,7 +1,5 @@
 using Blosc
 using Base.Test
-using Compat
-import Compat.ASCIIString
 
 @test_throws ArgumentError Blosc.set_num_threads(0)
 @test_throws ArgumentError Blosc.set_num_threads(Blosc.MAX_THREADS + 1)
@@ -20,8 +18,8 @@ Blosc.set_blocksize(0)
 Blosc.set_blocksize()
 @test_throws ArgumentError Blosc.set_blocksize(-1)
 
-s = convert(ASCIIString, rand('0':'z', 10000))
-@test ASCIIString(decompress(UInt8, compress(s))) == s
+s = convert(String, rand('0':'z', 10000))
+@test String(decompress(UInt8, compress(s))) == s
 @test isempty(decompress(UInt8, compress("")))
 
 x = rand(100)
