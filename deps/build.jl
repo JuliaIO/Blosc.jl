@@ -1,6 +1,6 @@
 using BinDeps
 
-vers = "1.11.1"
+vers = "1.12.1"
 
 tagfile = "installed_vers"
 target = "libblosc.$(Libdl.dlext)"
