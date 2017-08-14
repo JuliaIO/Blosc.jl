@@ -53,7 +53,7 @@ CPPFLAGS += -DSHUFFLE_AVX2_ENABLED -DSHUFFLE_SSE2_ENABLED
 endif
 
 $(LIB): $(OBJ)
-	$(CC) $(CFLAGS) -shared $(OBJ) -o $(LIB)
+	$(CC) $(CFLAGS) -shared $(OBJ) -lstdc++ -o $(LIB)
 
 clean:
 	rm -f $(OBJ) $(LIB)
