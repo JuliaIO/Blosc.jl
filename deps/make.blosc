@@ -7,7 +7,7 @@
 #       the blosc.c source file to force the inclusion of win32/pthread.*
 
 CC = gcc
-CXX = $(CC)
+CXX = g++
 CFLAGS = -fPIC -O3 -pthread -std=gnu99
 CPPFLAGS = -I. -DBLOSC_SHARED_LIBRARY
 CXXFLAGS = -fPIC -O3 -pthread
@@ -53,7 +53,7 @@ CPPFLAGS += -DSHUFFLE_AVX2_ENABLED -DSHUFFLE_SSE2_ENABLED
 endif
 
 $(LIB): $(OBJ)
-	$(CC) $(CFLAGS) -shared $(OBJ) -lstdc++ -o $(LIB)
+	$(CXX) $(CXXFLAGS) -shared $(OBJ) -o $(LIB)
 
 clean:
 	rm -f $(OBJ) $(LIB)
