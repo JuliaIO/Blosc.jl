@@ -7,6 +7,7 @@
 #       the blosc.c source file to force the inclusion of win32/pthread.*
 
 CC = gcc
+CXX = $(CC)
 CFLAGS = -fPIC -O3 -pthread -std=gnu99
 CPPFLAGS = -I. -DBLOSC_SHARED_LIBRARY
 CXXFLAGS = -fPIC -O3 -pthread
@@ -93,14 +94,14 @@ $(LZ4_DIR)/lz4hc.o: $(LZ4_DIR)/lz4hc.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(LZ4_DIR)/lz4hc.c
 
 $(SNAPPY_DIR)/snappy-c.o: $(SNAPPY_DIR)/snappy-c.cc
-	$(CC) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(SNAPPY_DIR)/snappy-c.cc
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(SNAPPY_DIR)/snappy-c.cc
 
 $(SNAPPY_DIR)/snappy-sinksource.o: $(SNAPPY_DIR)/snappy-sinksource.cc
-	$(CC) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(SNAPPY_DIR)/snappy-sinksource.cc
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(SNAPPY_DIR)/snappy-sinksource.cc
 
 $(SNAPPY_DIR)/snappy-stubs-internal.o: $(SNAPPY_DIR)/snappy-stubs-internal.cc
-	$(CC) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(SNAPPY_DIR)/snappy-stubs-internal.cc
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(SNAPPY_DIR)/snappy-stubs-internal.cc
 
 $(SNAPPY_DIR)/snappy.o: $(SNAPPY_DIR)/snappy.cc
-	$(CC) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(SNAPPY_DIR)/snappy.cc
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(SNAPPY_DIR)/snappy.cc
 
