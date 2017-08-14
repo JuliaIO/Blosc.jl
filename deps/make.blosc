@@ -9,6 +9,7 @@
 CC = gcc
 CFLAGS = -fPIC -O3 -pthread -std=gnu99
 CPPFLAGS = -I. -DBLOSC_SHARED_LIBRARY
+CXXFLAGS = -fPIC -O3 -pthread
 
 LIB = libblosc.so
 
@@ -22,8 +23,9 @@ CHECK_AVX2 = $(shell if $(CC) $(CPPFLAGS) $(CFLAGS) -mavx2 -c -o shuffle-avx2.tm
 # include internal LZ4
 # there will only be one LZ4 dir
 LZ4_DIR = $(wildcard ../internal-complibs/lz4-*)
-OTHER_OBJ += $(LZ4_DIR)/lz4.o $(LZ4_DIR)/lz4hc.o
-CFLAGS += -DHAVE_LZ4 -I$(LZ4_DIR)
+SNAPPY_DIR = $(wildcard ../internal-complibs/snappy-*)
+OTHER_OBJ += $(LZ4_DIR)/lz4.o $(LZ4_DIR)/lz4hc.o $(SNAPPY_DIR)/snappy-c.o $(SNAPPY_DIR)/snappy-sinksource.o $(SNAPPY_DIR)/snappy-stubs-internal.o $(SNAPPY_DIR)/snappy.o
+CPPFLAGS += -DHAVE_LZ4 -I$(LZ4_DIR) -DHAVE_SNAPPY -I$(SNAPPY_DIR)
 
 ifeq ($(shell uname -m), x86_64)
 HAVE_AVX=$(CHECK_AVX2)
@@ -89,3 +91,16 @@ $(LZ4_DIR)/lz4.o: $(LZ4_DIR)/lz4.c
 
 $(LZ4_DIR)/lz4hc.o: $(LZ4_DIR)/lz4hc.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(LZ4_DIR)/lz4hc.c
+
+$(SNAPPY_DIR)/snappy-c.o: $(SNAPPY_DIR)/snappy-c.cc
+	$(CC) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(SNAPPY_DIR)/snappy-c.cc
+
+$(SNAPPY_DIR)/snappy-sinksource.o: $(SNAPPY_DIR)/snappy-sinksource.cc
+	$(CC) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(SNAPPY_DIR)/snappy-sinksource.cc
+
+$(SNAPPY_DIR)/snappy-stubs-internal.o: $(SNAPPY_DIR)/snappy-stubs-internal.cc
+	$(CC) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(SNAPPY_DIR)/snappy-stubs-internal.cc
+
+$(SNAPPY_DIR)/snappy.o: $(SNAPPY_DIR)/snappy.cc
+	$(CC) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(SNAPPY_DIR)/snappy.cc
+
