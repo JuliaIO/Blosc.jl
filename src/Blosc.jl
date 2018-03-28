@@ -229,7 +229,7 @@ function compressor_library(src::DenseVector{UInt8})
 end
 @deprecate compression_library(src::DenseVector{UInt8}) compressor_library(src)
 
-immutable CompressionInfo
+struct CompressionInfo
     library::String
     typesize::Int
     pure_memcopy::Bool
