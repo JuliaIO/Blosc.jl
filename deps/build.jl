@@ -18,7 +18,7 @@ if !isfile(target) || !isfile(tagfile) || readchomp(tagfile) != "$vers $(Sys.WOR
         if !isfile(tarball)
             download("https://github.com/Blosc/c-blosc/archive/v$vers.tar.gz", tarball)
         end
-        run(`tar xzf $(string(tarball, ".", ".gz", ".tar"))`)
+        run(`tar xzf $tarball`)
         cd(srcdir) do
             println("Compiling libblosc...")
             run(`make -f ../../make.blosc LIB=../../$target`)
