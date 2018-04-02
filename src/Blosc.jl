@@ -1,14 +1,15 @@
 __precompile__()
 
 module Blosc
+using Compat
 export compress, compress!, decompress, decompress!
 
 const libblosc = joinpath(dirname(@__FILE__), "..", "deps", "libblosc")
 
 function __init__()
-    ccall((:blosc_init,libblosc), Void, ())
+    ccall((:blosc_init,libblosc), Cvoid, ())
     atexit() do
-        ccall((:blosc_destroy,libblosc), Void, ())
+        ccall((:blosc_destroy,libblosc), Cvoid, ())
     end
 end
 
@@ -23,15 +24,23 @@ const MAX_THREADS = 256
 const MAX_BUFFERSIZE = typemax(Cint) - MAX_OVERHEAD
 const MAX_TYPESIZE = 255
 
+if isdefined(Compat.GC, Symbol("@preserve"))
+    import Compat.GC: @preserve
+else
+    macro preserve(args...)
+        esc(args[end])
+    end
+end
+
 # low-level functions:
 blosc_compress(level, shuffle, itemsize, srcsize, src, dest, destsize) =
     ccall((:blosc_compress,libblosc), Cint,
-          (Cint,Cint,Csize_t, Csize_t, Ptr{Void}, Ptr{Void}, Csize_t),
+          (Cint,Cint,Csize_t, Csize_t, Ptr{Cvoid}, Ptr{Cvoid}, Csize_t),
           level, shuffle, itemsize, srcsize, src, dest, destsize)
 
 blosc_decompress(src, dest, destsize) =
     ccall((:blosc_decompress,libblosc), Cint,
-          (Ptr{Void},Ptr{Void},Csize_t), src, dest, destsize)
+          (Ptr{Cvoid},Ptr{Cvoid},Csize_t), src, dest, destsize)
 
 # check whether the strides of A correspond to contiguous data
 iscontiguous(::Array) = true
@@ -50,12 +59,12 @@ function iscontiguous(A::DenseArray)
 end
 
 # Returns the size of compressed data inside dest
-function compress!{T}(dest::DenseVector{UInt8},
-                      src::Ptr{T},
-                      src_size::Integer;
-                      level::Integer=5,
-                      shuffle::Bool=true,
-                      itemsize::Integer=sizeof(T))
+function compress!(dest::DenseVector{UInt8},
+                   src::Ptr{T},
+                   src_size::Integer;
+                   level::Integer=5,
+                   shuffle::Bool=true,
+                   itemsize::Integer=sizeof(T)) where {T}
     iscontiguous(dest) || throw(ArgumentError("dest must be contiguous array"))
     if !isbits(T)
         throw(ArgumentError("buffer eltype must be `isbits` type"))
@@ -75,24 +84,24 @@ function compress!{T}(dest::DenseVector{UInt8},
 end
 
 compress!(dest::DenseVector{UInt8}, src::AbstractString; kws...) =
-    compress!(dest, pointer(src), sizeof(src); kws...)
+    @preserve src compress!(dest, pointer(src), sizeof(src); kws...)
 
 function compress!(dest::DenseVector{UInt8}, src::DenseArray; kws...)
     iscontiguous(src) || throw(ArgumentError("src must be a contiguous array"))
-    return compress!(dest, pointer(src), sizeof(src); kws...)
+    return @preserve src compress!(dest, pointer(src), sizeof(src); kws...)
 end
 
-function compress{T}(src::Ptr{T}, src_size::Integer; kws...)
-    dest = Vector{UInt8}(src_size + MAX_OVERHEAD)
+function compress(src::Ptr{T}, src_size::Integer; kws...) where {T}
+    dest = Vector{UInt8}(undef, src_size + MAX_OVERHEAD)
     sz = compress!(dest,src,src_size; kws...)
-    assert(sz > 0 || src_size == 0)
+    @assert(sz > 0 || src_size == 0)
     return resize!(dest, sz)
 end
 function compress(src::DenseArray; kws...)
     iscontiguous(src) || throw(ArgumentError("src must be a contiguous array"))
-    compress(pointer(src), sizeof(src); kws...)
+    @preserve src compress(pointer(src), sizeof(src); kws...)
 end
-compress(src::AbstractString; kws...) = compress(pointer(src), sizeof(src); kws...)
+compress(src::AbstractString; kws...) = @preserve src compress(pointer(src), sizeof(src); kws...)
 
 """
     compress(data; level=5, shuffle=true, itemsize)
@@ -117,24 +126,21 @@ to `dest`, or `0` if the buffer was too small.
 """
 compress!
 
-# given a compressed buffer, return the (uncompressed, compressed, block) size
-const _sizes_vals = Vector{Csize_t}(3)
-function cbuffer_sizes(buf::Ptr)
-    ccall((:blosc_cbuffer_sizes,libblosc), Void,
-          (Ptr{Void}, Ptr{Csize_t}, Ptr{Csize_t}, Ptr{Csize_t}),
-          buf,
-          pointer(_sizes_vals, 1),
-          pointer(_sizes_vals, 2),
-          pointer(_sizes_vals, 3))
-    return (_sizes_vals[1], _sizes_vals[2], _sizes_vals[3])
-end
 """
     sizes(buf::Vector{UInt8})
 
 Given a compressed buffer `buf`, return a tuple
 of the `(uncompressed, compressed, block)` sizes in bytes.
 """
-sizes(buf::Vector{UInt8}) = cbuffer_sizes(pointer(buf))
+function sizes(buf::Vector{UInt8})
+    s1 = Ref{Csize_t}()
+    s2 = Ref{Csize_t}()
+    s3 = Ref{Csize_t}()
+    ccall((:blosc_cbuffer_sizes,libblosc), Cvoid,
+          (Ptr{UInt8}, Ref{Csize_t}, Ref{Csize_t}, Ref{Csize_t}),
+          buf, s1, s2, s3)
+    return (s1[], s2[], s3[])
+end
 
 """
     decompress!(dest::Vector{T}, src::Vector{UInt8})
@@ -142,7 +148,7 @@ sizes(buf::Vector{UInt8}) = cbuffer_sizes(pointer(buf))
 Like `decompress`, but uses a pre-allocated destination buffer `dest`,
 which is resized as needed to store the decompressed data from `src`.
 """
-function decompress!{T}(dest::DenseVector{T}, src::DenseVector{UInt8})
+function decompress!(dest::DenseVector{T}, src::DenseVector{UInt8}) where {T}
     if !iscontiguous(dest) || !iscontiguous(src)
         throw(ArgumentError("src and dest must be contiguous arrays"))
     end
@@ -169,8 +175,8 @@ end
 
 Return the compressed buffer `src` as an array of element type `T`.
 """
-decompress{T}(::Type{T}, src::DenseVector{UInt8}) =
-    decompress!(Vector{T}(0), src)
+decompress(::Type{T}, src::DenseVector{UInt8}) where {T} =
+    decompress!(Vector{T}(undef, 0), src)
 
 # Initialize a pool of threads for compression / decompression.
 # If `nthreads` is 1, the the serial version is chosen and a possible previous existing pool is ended.
@@ -209,7 +215,7 @@ appropriate blocksize will be chosen automatically by blosc.
 """
 function set_blocksize(blocksize::Integer=0)
     blocksize >= 0 || throw(ArgumentError("n must be ≥ 0 (default)"))
-    ccall((:blosc_set_blocksize,libblosc), Void, (Csize_t,), blocksize)
+    ccall((:blosc_set_blocksize,libblosc), Cvoid, (Csize_t,), blocksize)
 end
 @deprecate set_default_blocksize() set_blocksize()
 
@@ -245,8 +251,8 @@ compression algorithm used in a `CompressionInfo` data structure.
 function compressor_info(cbuf::DenseVector{UInt8})
     iscontiguous(cbuf) || throw(ArgumentError("cbuf must be contiguous array"))
     flag, typesize = Cint[0], Csize_t[0]
-    ccall((:blosc_cbuffer_metainfo, libblosc), Void,
-          (Ptr{Void},Ptr{Csize_t},Ptr{Cint}), cbuf, typesize, flag)
+    ccall((:blosc_cbuffer_metainfo, libblosc), Cvoid,
+          (Ptr{Cvoid},Ptr{Csize_t},Ptr{Cint}), cbuf, typesize, flag)
     pure_memcopy = flag[1] & MEMCPYED != 0
     shuffled = flag[1] & DOSHUFFLE != 0
     return CompressionInfo(compressor_library(cbuf),
@@ -268,7 +274,7 @@ if isdefined("", :data)
 else
     function take_cstring(ptr)
         str = unsafe_string(ptr)
-        ccall(:free, Void, (Ptr{Void},), ptr)
+        ccall(:free, Cvoid, (Ptr{Cvoid},), ptr)
         return str
     end
 end
@@ -287,7 +293,7 @@ function compressor_info(name::AbstractString)
     ret < 0 && error("Error retrieving compressor info for $name")
     lib_str = take_cstring(lib[])
     ver_str = take_cstring(ver[])
-    return (name, lib_str, ver_str == "unknown" ? v"0.0.0" : convert(VersionNumber, ver_str))
+    return (name, lib_str, ver_str == "unknown" ? v"0.0.0" : VersionNumber(ver_str))
 end
 
 """
