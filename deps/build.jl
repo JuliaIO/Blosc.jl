@@ -1,4 +1,5 @@
-import Compat.Libdl
+using Compat
+import Compat.Sys, Compat.Libdl
 
 vers = "1.12.1"
 
