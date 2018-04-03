@@ -1,5 +1,5 @@
-using Blosc
-using Base.Test
+using Blosc, Compat
+using Compat.Test
 
 @test_throws ArgumentError Blosc.set_num_threads(0)
 @test_throws ArgumentError Blosc.set_num_threads(Blosc.MAX_THREADS + 1)
@@ -18,7 +18,7 @@ Blosc.set_blocksize(0)
 Blosc.set_blocksize()
 @test_throws ArgumentError Blosc.set_blocksize(-1)
 
-s = convert(String, rand('0':'z', 10000))
+s = String(rand('0':'z', 10000))
 @test String(decompress(UInt8, compress(s))) == s
 @test isempty(decompress(UInt8, compress("")))
 
@@ -32,18 +32,18 @@ for ty in [Float16, Float32, Float64,
            Int8, Int16, Int32, Int64, Int128,
            UInt8, UInt16, UInt32, UInt64, UInt128]
     for i=1:2048
-        a = rand(ty, i)
-        @test roundtrip(a)
+        @test roundtrip(rand(ty, i))
     end
 end
 # cannot compress element types that are not isbits
 @test_throws ArgumentError Blosc.compress([BigInt(1)])
 
 # test that we actually are compressing
-a = ones(Float64, 1000)
-ac = Blosc.compress(a)
-@test sizeof(ac) < sizeof(a)
-@test Blosc.decompress(Float64, ac) == a
+let a = ones(Float64, 1000)
+    ac = Blosc.compress(a)
+    @test sizeof(ac) < sizeof(a)
+    @test Blosc.decompress(Float64, ac) == a
+end
 
 # test all compressors
 for (comp, name, _) in Blosc.compressors_info()
