@@ -4,9 +4,10 @@ module Blosc
 using Compat
 export compress, compress!, decompress, decompress!
 
-const libblosc = joinpath(dirname(@__FILE__), "..", "deps", "libblosc")
+include("../deps/deps.jl")
 
 function __init__()
+    check_deps()
     ccall((:blosc_init,libblosc), Cvoid, ())
     atexit() do
         ccall((:blosc_destroy,libblosc), Cvoid, ())
