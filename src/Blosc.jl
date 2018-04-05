@@ -4,7 +4,12 @@ module Blosc
 using Compat
 export compress, compress!, decompress, decompress!
 
-include("../deps/deps.jl")
+# Load blosc libraries from our deps.jl
+const depsjl_path = joinpath(dirname(@__FILE__), "..", "deps", "deps.jl")
+if !isfile(depsjl_path)
+    error("Blosc not installed properly, run Pkg.build(\"Blosc\"), restart Julia and try again")
+end
+include(depsjl_path)
 
 function __init__()
     check_deps()
