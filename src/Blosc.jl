@@ -132,13 +132,8 @@ to `dest`, or `0` if the buffer was too small.
 """
 compress!
 
-"""
-    sizes(buf::Vector{UInt8})
-
-Given a compressed buffer `buf`, return a tuple
-of the `(uncompressed, compressed, block)` sizes in bytes.
-"""
-function sizes(buf::Vector{UInt8})
+# this unexported function is used by the HDF5.jl blosc filter
+function cbuffer_sizes(buf)
     s1 = Ref{Csize_t}()
     s2 = Ref{Csize_t}()
     s3 = Ref{Csize_t}()
@@ -147,6 +142,14 @@ function sizes(buf::Vector{UInt8})
           buf, s1, s2, s3)
     return (s1[], s2[], s3[])
 end
+
+"""
+    sizes(buf::Vector{UInt8})
+
+Given a compressed buffer `buf`, return a tuple
+of the `(uncompressed, compressed, block)` sizes in bytes.
+"""
+sizes(buf::DenseVector{UInt8}) = cbuffer_sizes(buf)
 
 """
     decompress!(dest::Vector{T}, src::Vector{UInt8})
