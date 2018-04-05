@@ -2,3 +2,5 @@ installed_vers
 .DS_Store
 deps/c-blosc*
 deps/libblosc.*
+deps/usr
+deps/deps.jl
