@@ -1,11 +1,16 @@
 using BinaryProvider # requires BinaryProvider 0.3.0 or later
+include("compile.jl")
+
+# env var to force compilation from source, for testing purposes
+const forcecompile = get(ENV, "FORCE_COMPILE_BLOSC", "no") == "yes"
 
 # Parse some basic command-line arguments
-const verbose = "--verbose" in ARGS
+const verbose = ("--verbose" in ARGS) || forcecompile
 const prefix = Prefix(get([a for a in ARGS if a != "--verbose"], 1, joinpath(@__DIR__, "usr")))
 products = [
     LibraryProduct(prefix, String["libblosc"], :libblosc),
 ]
+verbose && forcecompile && Compat.@info("Forcing compilation from source.")
 
 # Download binaries from hosted location
 bin_prefix = "https://github.com/stevengj/BloscBuilder/releases/download/v1.14.3+3"
@@ -26,20 +31,34 @@ download_info = Dict(
     Windows(:x86_64) => ("$bin_prefix/Blosc.x86_64-w64-mingw32.tar.gz", "d43bda44f1a250d195f4a3d3814864571a9dfba9a41e792faca068c6618c4160"),
 )
 
+# source code tarball and hash for fallback compilation
+source_url = "https://github.com/Blosc/c-blosc/archive/v1.14.3.tar.gz"
+source_hash = "7217659d8ef383999d90207a98c9a2555f7b46e10fa7d21ab5a1f92c861d18f7"
+
 # Install unsatisfied or updated dependencies:
 unsatisfied = any(!satisfied(p; verbose=verbose) for p in products)
-if haskey(download_info, platform_key())
+if haskey(download_info, platform_key()) && !forcecompile
     url, tarball_hash = download_info[platform_key()]
-    if unsatisfied || !isinstalled(url, tarball_hash; prefix=prefix)
+    if !isinstalled(url, tarball_hash; prefix=prefix)
         # Download and install binaries
         install(url, tarball_hash; prefix=prefix, force=true, verbose=verbose)
+
+        # check again whether the dependency is satisfied, which
+        # may not be true if dlopen fails due to a libc++ incompatibility (#50)
+        unsatisfied = any(!satisfied(p; verbose=verbose) for p in products)
     end
-elseif unsatisfied
-    # If we don't have a BinaryProvider-compatible .tar.gz to download, complain.
-    # Alternatively, you could attempt to install from a separate provider,
-    # build from source or something even more ambitious here.
-    error("Your platform $(triplet(platform_key())) is not supported by this package!")
+end
+
+if unsatisfied || forcecompile
+    # Fall back to building from source, giving the library a different name
+    # so that it is not overwritten by BinaryBuilder downloads or vice-versa.
+    libname = "libblosc_from_source"
+    products = [ LibraryProduct(prefix, [libname], :libblosc) ]
+    source_path = joinpath(prefix, "downloads", basename(source_url))
+    if !isfile(source_path) || !verify(source_path, source_hash; verbose=verbose) || !satisfied(products[1]; verbose=verbose)
+        compile(libname, source_url, source_hash, prefix=prefix, verbose=verbose)
+    end
 end
 
 # Write out a deps.jl file that will contain mappings for our products
-write_deps_file(joinpath(@__DIR__, "deps.jl"), products)
+write_deps_file(joinpath(@__DIR__, "deps.jl"), products, verbose=verbose)
