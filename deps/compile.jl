@@ -23,7 +23,7 @@ function compile(libname, tarball_url, hash; prefix=BinaryProvider.global_prefix
         run(`$cmake_executable -DBUILD_TESTS=Off -DBUILD_BENCHMARKS=Off ..`)
         run(`$cmake_executable --build .`)
         mkpath(libdir(prefix))
-        mv("blosc/libblosc.$dlext", joinpath(libdir(prefix), libname*"."*dlext),
-           remove_destination=true)
+        cp("blosc/libblosc.$dlext", joinpath(libdir(prefix), libname*"."*dlext),
+           remove_destination=true, follow_symlinks=true)
     end
 end
