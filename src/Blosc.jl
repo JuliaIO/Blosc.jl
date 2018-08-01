@@ -1,7 +1,7 @@
 __precompile__()
 
 module Blosc
-using Compat
+using Compat, Compat.Libdl
 export compress, compress!, decompress, decompress!
 
 # Load blosc libraries from our deps.jl
