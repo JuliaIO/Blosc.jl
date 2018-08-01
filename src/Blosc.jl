@@ -2,6 +2,7 @@ VERSION < v"0.7.0-beta2.199" && __precompile__()
 
 module Blosc
 using Compat
+import Compat.Libdl
 export compress, compress!, decompress, decompress!
 
 # Load blosc libraries from our deps.jl
