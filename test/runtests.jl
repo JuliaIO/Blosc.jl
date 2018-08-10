@@ -35,7 +35,7 @@ for ty in [Float16, Float32, Float64,
         @test roundtrip(rand(ty, i))
     end
 end
-# cannot compress element types that are not isbits
+# cannot compress element types that are not isbitstype
 @test_throws ArgumentError Blosc.compress([BigInt(1)])
 
 # test that we actually are compressing
