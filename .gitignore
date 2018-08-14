@@ -4,3 +4,4 @@ deps/c-blosc*
 deps/libblosc.*
 deps/usr
 deps/deps.jl
+deps/build.log
