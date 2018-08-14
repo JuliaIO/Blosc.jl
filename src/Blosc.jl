@@ -73,7 +73,7 @@ function compress!(dest::DenseVector{UInt8},
                    shuffle::Bool=true,
                    itemsize::Integer=sizeof(T)) where {T}
     iscontiguous(dest) || throw(ArgumentError("dest must be contiguous array"))
-    if !isbits(T)
+    if !isbitstype(T)
         throw(ArgumentError("buffer eltype must be `isbits` type"))
     end
     if itemsize <= 0
@@ -162,7 +162,7 @@ function decompress!(dest::DenseVector{T}, src::DenseVector{UInt8}) where {T}
     if !iscontiguous(dest) || !iscontiguous(src)
         throw(ArgumentError("src and dest must be contiguous arrays"))
     end
-    if !isbits(T)
+    if !isbitstype(T)
         throw(ArgumentError("dest must be a DenseVector of `isbits` element types"))
     end
     uncompressed, = sizes(src)
