@@ -38,7 +38,7 @@ source_hash = "7217659d8ef383999d90207a98c9a2555f7b46e10fa7d21ab5a1f92c861d18f7"
 
 # Install unsatisfied or updated dependencies:
 unsatisfied = any(!satisfied(p; verbose=verbose) for p in products)
-if haskey(download_info, platform_key()) && !forcecompile
+if haskey(download_info, platform_key_abi()) && !forcecompile
     url, tarball_hash = download_info[platform_key()]
     if !isinstalled(url, tarball_hash; prefix=prefix)
         # Download and install binaries
