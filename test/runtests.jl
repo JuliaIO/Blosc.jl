@@ -1,5 +1,5 @@
-using Blosc, Compat
-using Compat.Test
+using Blosc
+using Test
 
 @test_throws ArgumentError Blosc.set_num_threads(0)
 @test_throws ArgumentError Blosc.set_num_threads(Blosc.MAX_THREADS + 1)

@@ -5,3 +5,4 @@ deps/libblosc.*
 deps/usr
 deps/deps.jl
 deps/build.log
+Manifest.toml
