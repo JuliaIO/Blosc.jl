@@ -1,0 +1,19 @@
+name = "Blosc"
+uuid = "a74b3585-a348-5f62-a45c-50e91977d574"
+version = "0.6.0"
+
+[deps]
+BinaryProvider = "b99e7846-7c00-51b0-8f62-c81ae34c0232"
+CMakeWrapper = "d5fb7624-851a-54ee-a528-d3f3bac0b4a0"
+Libdl = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
+
+[compat]
+BinaryProvider = "0.5"
+CMakeWrapper = "0.2"
+julia = "1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]

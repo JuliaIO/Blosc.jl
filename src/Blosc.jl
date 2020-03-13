@@ -1,8 +1,7 @@
 VERSION < v"0.7.0-beta2.199" && __precompile__()
 
 module Blosc
-using Compat
-import Compat.Libdl
+import Libdl
 export compress, compress!, decompress, decompress!
 
 # Load blosc libraries from our deps.jl
@@ -31,13 +30,7 @@ const MAX_THREADS = 256
 const MAX_BUFFERSIZE = typemax(Cint) - MAX_OVERHEAD
 const MAX_TYPESIZE = 255
 
-if isdefined(Compat.GC, Symbol("@preserve"))
-    import Compat.GC: @preserve
-else
-    macro preserve(args...)
-        esc(args[end])
-    end
-end
+using Base.GC: @preserve
 
 # low-level functions:
 blosc_compress(level, shuffle, itemsize, srcsize, src, dest, destsize) =

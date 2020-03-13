@@ -10,7 +10,7 @@ const prefix = Prefix(get([a for a in ARGS if a != "--verbose"], 1, joinpath(@__
 products = [
     LibraryProduct(prefix, String["libblosc"], :libblosc),
 ]
-verbose && forcecompile && Compat.@info("Forcing compilation from source.")
+verbose && forcecompile && @info("Forcing compilation from source.")
 
 # Download binaries from hosted location
 bin_prefix = "https://github.com/stevengj/BloscBuilder/releases/download/v1.14.3+5"
