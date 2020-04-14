@@ -1,6 +1,5 @@
 module Blosc
 using Blosc_jll
-import Libdl
 export compress, compress!, decompress, decompress!
 
 function __init__()
