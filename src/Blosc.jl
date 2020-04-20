@@ -175,12 +175,13 @@ decompress(::Type{T}, src::DenseVector{UInt8}) where {T} =
 # If `nthreads` is 1, the the serial version is chosen and a possible previous existing pool is ended.
 # If this function is not callled, `nthreads` is set to 1 internally.
 """
-    set_num_threads(n=Sys.CPU_CORES)
+    set_num_threads(n=Sys.Threads.nthreads())
 
-Tells Blosc to use `n` threads for compression/decompression.   If this
+Tells Blosc to use `n` threads for compression/decompression. If this
 function is never called, the default is `1` (serial).
+Returns the previous number of threads.
 """
-function set_num_threads(n::Integer=Sys.CPU_CORES)
+function set_num_threads(n::Integer=Threads.nthreads())
     1 <= n <= MAX_THREADS || throw(ArgumentError("must have 1 ≤ nthreads ≤ $MAX_THREADS"))
     return ccall((:blosc_set_nthreads,libblosc), Cint, (Cint,), n)
 end
