@@ -1,18 +1,8 @@
-VERSION < v"0.7.0-beta2.199" && __precompile__()
-
 module Blosc
-import Libdl
+using Blosc_jll
 export compress, compress!, decompress, decompress!
 
-# Load blosc libraries from our deps.jl
-const depsjl_path = joinpath(dirname(@__FILE__), "..", "deps", "deps.jl")
-if !isfile(depsjl_path)
-    error("Blosc not installed properly, run Pkg.build(\"Blosc\"), restart Julia and try again")
-end
-include(depsjl_path)
-
 function __init__()
-    check_deps()
     ccall((:blosc_init,libblosc), Cvoid, ())
     atexit() do
         ccall((:blosc_destroy,libblosc), Cvoid, ())
