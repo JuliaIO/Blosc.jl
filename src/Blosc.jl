@@ -190,7 +190,7 @@ end
 
 Set the current compression algorithm to `s`.  The currently supported
 algorithms in the default Blosc module build are `"blosclz"`, `"lz4"`,
-and `"l4hc"`.   (Throws an `ArgumentError` if `s` is not the name
+and `"lz4hc"`.   (Throws an `ArgumentError` if `s` is not the name
 of a supported algorithm.)  Returns a nonnegative integer code used
 internally by Blosc to identify the compressor.
 """
