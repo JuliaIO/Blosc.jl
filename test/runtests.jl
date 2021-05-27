@@ -68,4 +68,13 @@ end
 @test_throws ArgumentError Blosc.compress(ones(UInt8, 256), level=-1)
 @test_throws ArgumentError Blosc.compress(ones(UInt8, 256), level=11)
 
+
+# test compcode/compname
+for name in Blosc.compressors()
+    @test Blosc.compname(Blosc.compcode(name)) == name
+end
+
+@test_throws ArgumentError Blosc.compname(99)
+@test_throws ArgumentError Blosc.compcode("not_a_compressor")
+
 @test Blosc.free_resources!()

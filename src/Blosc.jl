@@ -188,11 +188,11 @@ end
 """
     set_compressor(s::AbstractString)
 
-Set the current compression algorithm to `s`.  The currently supported
-algorithms in the default Blosc module build are `"blosclz"`, `"lz4"`,
-and `"lz4hc"`.   (Throws an `ArgumentError` if `s` is not the name
-of a supported algorithm.)  Returns a nonnegative integer code used
-internally by Blosc to identify the compressor.
+Set the current compression algorithm to `s`. Supported algorithms are specified by
+[`Blosc.compressors()`](@ref) (the default is `"blosclz"`).
+
+Throws an `ArgumentError` if `s` is not the name of a supported algorithm, otherwise
+returns a nonnegative integer code used internally by Blosc to identify the compressor.
 """
 function set_compressor(s::AbstractString)
     compcode = ccall((:blosc_set_compressor,libblosc), Cint, (Cstring,), s)
@@ -306,5 +306,32 @@ In case of problems releasing resources, it returns `false`,
 whereas it returns `true` on success.
 """
 free_resources!() = ccall((:blosc_free_resources,libblosc), Cint, ()) == 0
+
+
+"""
+    compcode(s::AbstractString)
+
+Returns a nonnegative integer code used internally by Blosc to identify the compressor.
+Throws an `ArgumentError` if `s` is not the name of a supported algorithm.
+"""
+function compcode(s::AbstractString)
+    compcode = ccall((:blosc_compname_to_compcode,libblosc), Cint, (Cstring,), s)
+    compcode == -1 && throw(ArgumentError("unrecognized compressor $s"))
+    return compcode
+end
+
+"""
+    compname(compcode::Integer)
+
+Returns the compressor name corresponding to the internal integer code used by Blosc.
+Throws an `ArgumentError` if `compcode` is not a valid code.
+"""
+function compname(compcode::Integer)
+    refstr = Ref{Cstring}()
+    retcode = ccall((:blosc_compcode_to_compname,libblosc), Cint, (Cint,Ptr{Cstring}), compcode, refstr)
+    retcode == -1 && throw(ArgumentError("unrecognized compcode $compcode"))
+    return unsafe_string(refstr[])
+end
+
 
 end # module
