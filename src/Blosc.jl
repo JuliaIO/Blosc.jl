@@ -31,6 +31,15 @@ blosc_compress(level, shuffle, itemsize, srcsize, src, dest, destsize) =
 blosc_decompress(src, dest, destsize) =
     ccall((:blosc_decompress,libblosc), Cint,
           (Ptr{Cvoid},Ptr{Cvoid},Csize_t), src, dest, destsize)
+          
+blosc_compress_ctx(clevel, doshuffle, typesize, nbytes, src, dest, destsize, compressor, blocksize, numinternalthreads) = 
+    ccall((:blosc_compress_ctx,libblosc), Cint,
+        (Cint, Cint, Csize_t, Csize_t, Ptr{Cvoid}, Ptr{Cvoid}, Csize_t, Cstring, Csize_t, Cint), 
+        clevel, doshuffle, typesize, nbytes, src, dest, destsize, compressor, blocksize, numinternalthreads)
+
+blosc_decompress_ctx(src, dest, destsize, numinternalthreads) = 
+    ccall((:blosc_decompress_ctx,libblosc), Cint,
+        (Ptr{Cvoid},Ptr{Cvoid},Csize_t,Cint), src, dest, destsize, numinternalthreads)
 
 # check whether the strides of A correspond to contiguous data
 iscontiguous(::Array) = true
