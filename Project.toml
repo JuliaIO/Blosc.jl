@@ -1,6 +1,6 @@
 name = "Blosc"
 uuid = "a74b3585-a348-5f62-a45c-50e91977d574"
-version = "0.7.1"
+version = "0.7.2"
 
 [deps]
 Blosc_jll = "0b7ba130-8d10-5ba8-a3d6-c5182647fed9"
