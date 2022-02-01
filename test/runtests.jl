@@ -4,6 +4,7 @@ using Test
 @test_throws ArgumentError Blosc.set_num_threads(0)
 @test_throws ArgumentError Blosc.set_num_threads(Blosc.MAX_THREADS + 1)
 @test Blosc.set_num_threads(1) == 1
+@test 1 <= Blosc.set_num_threads() <= Blosc.MAX_THREADS
 
 @test_throws ArgumentError Blosc.set_compressor("does_not_exist")
 for comp in Blosc.compressors()
