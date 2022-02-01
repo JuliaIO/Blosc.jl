@@ -12,8 +12,18 @@ end
 # The following constants should match those in blosc.h
 const VERSION_FORMAT = 2
 const MAX_OVERHEAD = 16
-const DOSHUFFLE = 0x1
-const MEMCPYED = 0x2
+
+# Codes for shuffling (see compress)
+const NOSHUFFLE  = 0  # no shuffle
+const SHUFFLE    = 1  # byte-wise shuffle
+const BITSHUFFLE = 2  # bit-wise shuffle
+
+# Codes for internal flags (used in compressor_info)
+const DOSHUFFLE    = 0x1  # byte-wise shuffle
+const MEMCPYED     = 0x2  # plain copy
+const DOBITSHUFFLE = 0x4  # bit-wise shuffle
+
+# The maximum number of threads (used in set_num_threads)
 const MAX_THREADS = 256
 
 # Blosc is currently limited to 32-bit buffer sizes (Blosc/c-blosc#67)
@@ -57,12 +67,15 @@ function iscontiguous(A::DenseArray)
     return true
 end
 
+# Check whether shuffle value is valid
+isvalidshuffle(shuffle) = shuffle in (NOSHUFFLE, SHUFFLE, BITSHUFFLE)
+
 # Returns the size of compressed data inside dest
 function compress!(dest::DenseVector{UInt8},
                    src::Ptr{T},
                    src_size::Integer;
                    level::Integer=5,
-                   shuffle::Bool=true,
+                   shuffle::Integer=SHUFFLE,
                    itemsize::Integer=sizeof(T)) where {T}
     iscontiguous(dest) || throw(ArgumentError("dest must be contiguous array"))
     if !isbitstype(T)
@@ -70,6 +83,9 @@ function compress!(dest::DenseVector{UInt8},
     end
     if itemsize <= 0
         throw(ArgumentError("itemsize must be positive"))
+    end
+    if !isvalidshuffle(shuffle)
+        throw(ArgumentError("invalid shuffle $shuffle not in [$NOSHUFFLE, $SHUFFLE, $BITSHUFFLE]"))
     end
     if level < 0 || level > 9
         throw(ArgumentError("invalid compression level $level not in [0,9]"))
@@ -103,16 +119,17 @@ end
 compress(src::AbstractString; kws...) = @preserve src compress(pointer(src), sizeof(src); kws...)
 
 """
-    compress(data; level=5, shuffle=true, itemsize)
+    compress(data; level=5, shuffle=SHUFFLE, itemsize)
 
 Return a `Vector{UInt8}` of the Blosc-compressed `data`, where `data`
 is an array or a string.
 
-The `level` keyword indicates the compression level
-(between `0`=no compression and `9`=max), `shuffle` indicates whether to use
-Blosc's shuffling preconditioner, and the shuffling preconditioner
-is optimized for arrays of binary items of size (in bytes) `itemsize` (defaults
-to `sizeof(eltype(data))` for arrays and the size of the code units for strings).
+The `level` keyword indicates the compression level (between `0`=no compression
+and `9`=max).  `shuffle` indicates whether to use no shuffling (`NOSHUFFLE`),
+byte shufflng (`SHUFFLE`), or bit shuffling (`BITSHUFFLE`) preconditioning.
+The shuffling preconditioner is optimized for arrays of binary items of size
+`itemsize` (in bytes, defaults to `sizeof(eltype(data))` for arrays and the
+size of the code units for strings).
 """
 compress
 
@@ -241,7 +258,7 @@ struct CompressionInfo
     library::String
     typesize::Int
     pure_memcopy::Bool
-    shuffled::Bool
+    shuffled::Integer
 end
 
 """
@@ -256,7 +273,8 @@ function compressor_info(cbuf::DenseVector{UInt8})
     ccall((:blosc_cbuffer_metainfo, libblosc), Cvoid,
           (Ptr{Cvoid},Ptr{Csize_t},Ptr{Cint}), cbuf, typesize, flag)
     pure_memcopy = flag[1] & MEMCPYED != 0
-    shuffled = flag[1] & DOSHUFFLE != 0
+    shuffled = (flag[1] & DOSHUFFLE != 0) ? SHUFFLE :
+               (flag[1] & DOBITSHUFFLE != 0) ? BITSHUFFLE : NOSHUFFLE
     return CompressionInfo(compressor_library(cbuf),
                            typesize[1],
                            pure_memcopy,
