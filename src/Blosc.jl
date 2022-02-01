@@ -181,7 +181,7 @@ Tells Blosc to use `n` threads for compression/decompression. If this
 function is never called, the default is `1` (serial).
 Returns the previous number of threads.
 """
-function set_num_threads(n::Integer=Threads.nthreads())
+function set_num_threads(n::Integer=1)
     1 <= n <= MAX_THREADS || throw(ArgumentError("must have 1 ≤ nthreads ≤ $MAX_THREADS"))
     return ccall((:blosc_set_nthreads,libblosc), Cint, (Cint,), n)
 end
