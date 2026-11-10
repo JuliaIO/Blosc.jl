@@ -41,6 +41,10 @@ blosc_compress(level, shuffle, itemsize, srcsize, src, dest, destsize) =
 blosc_decompress(src, dest, destsize) =
     ccall((:blosc_decompress,libblosc), Cint,
           (Ptr{Cvoid},Ptr{Cvoid},Csize_t), src, dest, destsize)
+
+blosc_cbuffer_validate(src, srcsize, destsize) =
+    ccall((:blosc_cbuffer_validate,libblosc), Cint,
+          (Ptr{Cvoid},Csize_t,Ref{Csize_t}), src, srcsize, destsize)
           
 blosc_compress_ctx(clevel, doshuffle, typesize, nbytes, src, dest, destsize, compressor, blocksize, numinternalthreads) = 
     ccall((:blosc_compress_ctx,libblosc), Cint,
@@ -153,13 +157,22 @@ function cbuffer_sizes(buf)
     return (s1[], s2[], s3[])
 end
 
+function check_header(buf::DenseVector{UInt8})
+    iscontiguous(buf) || throw(ArgumentError("buf must be a contiguous array"))
+    sizeof(buf) >= MAX_OVERHEAD ||
+        throw(ArgumentError("compressed buffer must contain at least $MAX_OVERHEAD header bytes"))
+end
+
 """
     sizes(buf::Vector{UInt8})
 
 Given a compressed buffer `buf`, return a tuple
 of the `(uncompressed, compressed, block)` sizes in bytes.
 """
-sizes(buf::DenseVector{UInt8}) = cbuffer_sizes(buf)
+function sizes(buf::DenseVector{UInt8})
+    check_header(buf)
+    cbuffer_sizes(buf)
+end
 
 """
     decompress!(dest::Vector{T}, src::Vector{UInt8})
@@ -174,7 +187,10 @@ function decompress!(dest::DenseVector{T}, src::DenseVector{UInt8}) where {T}
     if !isbitstype(T)
         throw(ArgumentError("dest must be a DenseVector of `isbits` element types"))
     end
-    uncompressed, = sizes(src)
+    uncompressed = Ref{Csize_t}()
+    blosc_cbuffer_validate(src, sizeof(src), uncompressed) == 0 ||
+        error("Blosc decompress error, compressed data is truncated or corrupted")
+    uncompressed = uncompressed[]
     if uncompressed == 0
         return resize!(dest, 0)
     end
@@ -247,7 +263,7 @@ compression library that was used to generate it.  (This is not
 the same as the name of the compression algorithm.)
 """
 function compressor_library(src::DenseVector{UInt8})
-    iscontiguous(src) || throw(ArgumentError("src must be a contiguous array"))
+    check_header(src)
     nptr = ccall((:blosc_cbuffer_complib,libblosc), Ptr{UInt8}, (Ptr{UInt8},), src)
     nptr == convert(Ptr{UInt8}, 0) && error("unknown compression library")
     name = unsafe_string(nptr)
@@ -269,7 +285,7 @@ Given a compressed array `src`, returns the information about the
 compression algorithm used in a `CompressionInfo` data structure.
 """
 function compressor_info(cbuf::DenseVector{UInt8})
-    iscontiguous(cbuf) || throw(ArgumentError("cbuf must be contiguous array"))
+    check_header(cbuf)
     flag, typesize = Cint[0], Csize_t[0]
     ccall((:blosc_cbuffer_metainfo, libblosc), Cvoid,
           (Ptr{Cvoid},Ptr{Csize_t},Ptr{Cint}), cbuf, typesize, flag)

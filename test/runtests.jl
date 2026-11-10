@@ -23,6 +23,13 @@ s = String(rand('0':'z', 10000))
 @test String(decompress(UInt8, compress(s))) == s
 @test isempty(decompress(UInt8, compress("")))
 
+# Reject truncated buffers before calling header-only or decompression C APIs.
+@test_throws ArgumentError Blosc.sizes(UInt8[Blosc.VERSION_FORMAT])
+let compressed = Blosc.compress(zeros(UInt8, 1_000_000))
+    truncated = compressed[1:Blosc.MAX_OVERHEAD]
+    @test_throws ErrorException Blosc.decompress(UInt8, truncated)
+end
+
 x = rand(100)
 @test decompress(eltype(x), compress(x)) == x
 @test isempty(decompress(Int, compress(Int[])))
